@@ -74,13 +74,9 @@ var solver = (function(R) {
     var boxCol = Math.floor(cell.x/3) * 3;
     var boxRow = Math.floor(cell.y/3) * 3;
     
-    return R.flatten(
-      R.map(function(row) {
-        return R.map(function(col) {
-          return col;
-        }, row.slice(boxCol, 3));
-      }, g.slice(boxRow, 3))
-    );
+    R.reduce(function(acc, row) {  
+      return acc.concat(R.map(R.I, row.slice(boxCol, 3)));
+    }, [], g.slice(boxRow, 3));
   }
 
   return {
