@@ -24,6 +24,13 @@ var solve = (function(R) {
     return boxWise;
   }
 
+  function render() {
+    console.log("solved");
+    g.forEach(function(r) {
+      console.log(r);
+    });
+  }
+
   function solve(g, x, y) {
     var cell;
     var i = 0;
@@ -33,11 +40,8 @@ var solve = (function(R) {
     cell = findEmptyCell(g, x, y);
     
     if (!cell) {
-        console.log("solved");
-        g.forEach(function(r) {
-          console.log(r);
-        });
-        return true;
+      render(g);
+      return true;
     }
 
     var domain = constrain(g, cell);
@@ -95,7 +99,10 @@ var solve = (function(R) {
            valid(value, boxToArray(g, cell));
   }
 
-  return solve;   
+  return {
+    solve: solve,
+    setRenderer: function(fn) { render = fn; }
+  };   
 
 }(ramda));
 
