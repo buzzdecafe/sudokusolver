@@ -1,9 +1,18 @@
 (function(R, solver) {
-  
-  var render;
+      
+    var render = function(g) {
+      var grid = document.getElementById('grid');
+      var htmlStr = R.reduce(function(acc, row) {
+        return acc += '<tr>' + 
+               R.reduce(function(acc, cell) {
+                 return acc + '<td>' + cell + '</td>';
+               }, '', row) +
+               '</tr>';
+      }, '', g);
+     
+      grid.innerHTML = htmlStr;
+    };
 
-  // magic happens here
-
-  solver.setRender(render);
-  solver.solve();
-}(ramda, solver));
+    solver.setRenderer(render);
+    solver.solve();
+  }(ramda, solver));
