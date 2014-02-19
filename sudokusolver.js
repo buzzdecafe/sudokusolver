@@ -2,7 +2,6 @@ var solver = (function(R) {
   
   var EMPTY = 0;
   var defaultGrid = [
-  
     [5, 0, 0,   1, 0, 0,   9, 3, 0],
     [6, 4, 0,   0, 7, 3,   0, 8, 0],
     [0, 0, 1,   8, 0, 5,   0, 0, 0],
@@ -14,7 +13,6 @@ var solver = (function(R) {
     [0, 0, 0,   6, 0, 7,   8, 0, 0],
     [0, 8, 0,   9, 3, 0,   0, 7, 1],
     [0, 1, 3,   0, 0, 8,   0, 0, 9]
-
   ];
 
   function constrain(g, cell) {
@@ -52,7 +50,6 @@ var solver = (function(R) {
       if (solve(g, cell.x, cell.y)) {               
         return true;
       }
-
       // mark cell as empty and backtrack    
       g[cell.y][cell.x] = EMPTY;
       i += 1;
@@ -84,17 +81,6 @@ var solver = (function(R) {
         }, row.slice(boxCol, 3));
       }, g.slice(boxRow, 3))
     );
-  }
-
-  function valid(value, list) {
-    return !R.contains(function(v) { v === value; }, list);
-  }
- 
-
-  function ok(g, cell, value) {
-    return valid(value, g[cell.y]) &&
-           valid(value, colToArray(g, cell.x)) &&
-           valid(value, boxToArray(g, cell));
   }
 
   return {
