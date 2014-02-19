@@ -24,7 +24,7 @@ var solver = (function(R) {
     return boxWise;
   }
 
-  function render() {
+  function render(g) {
     console.log("solved");
     g.forEach(function(r) {
       console.log(r);
