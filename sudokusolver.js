@@ -63,12 +63,12 @@ var solver = (function(R) {
   }
   
   function findEmptyCell(g, x, y) {
-    var coords = {};
-    coords.y = R.findIndex(function(r) { return R.contains(EMPTY, r); }, g);
-    if (coords.y !== false) {
-      coords.x = R.findIndex(function(c) { return c === EMPTY; }, g[coords.y]);
+    var cell = {};
+    cell.y = R.findIndex(function(r) { return R.contains(EMPTY, r); }, g);
+    if (cell.y !== false) {
+      cell.x = R.findIndex(function(c) { return c === EMPTY; }, g[cell.y]);
     }
-    return (coords.y !== false && coords.x !== false) ? coords : false;
+    return (cell.y !== false && cell.x !== false) ? cell : false;
   }
 
   function colToArray(g, x) {
