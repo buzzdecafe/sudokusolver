@@ -1,4 +1,4 @@
-var solve = (function(R) {
+var solver = (function(R) {
   
   var EMPTY = 0;
   var defaultGrid = [
