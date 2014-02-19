@@ -47,16 +47,14 @@ var solver = (function(R) {
     var domain = constrain(g, cell);
 
     while (i < domain.length) {
-      if (ok(g, cell, domain[i])) {   
-        g[cell.y][cell.x] = domain[i];
+      g[cell.y][cell.x] = domain[i];
 
-        if (solve(g, cell.x, cell.y)) {                
-          return true;
-        }
-
-        // mark cell as empty and backtrack    
-        g[cell.y][cell.x] = EMPTY;
+      if (solve(g, cell.x, cell.y)) {               
+        return true;
       }
+
+      // mark cell as empty and backtrack    
+      g[cell.y][cell.x] = EMPTY;
       i += 1;
     }
     return false;
