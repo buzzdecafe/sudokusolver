@@ -83,8 +83,7 @@ var solver = (function(R) {
 
   return {
     solve: solve,
-    setRenderer: function(fn) { render = fn; },
-    setUpdate: function(fn) { update = fn; }
+    setRenderer: function(fn) { render = fn; }
   };   
 
 }(ramda));
