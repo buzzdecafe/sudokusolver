@@ -30,7 +30,8 @@ var solver = (function(R) {
   }
 
   function solve(g, x, y) {
-    var cell = findEmptyCell(g || defaultGrid, x || 0, y || 0);
+    g = g || defaultGrid;
+    var cell = findEmptyCell(g, x || 0, y || 0);
     var i = 0;
     
     if (!cell) {
