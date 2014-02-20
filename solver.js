@@ -29,6 +29,10 @@ var solver = (function(R) {
     });
   }
 
+  function update(g, cell, value) {
+    g[cell.y][cell.x] = value;
+  }
+
   function solve(g, x, y) {
     g = g || defaultGrid;
     var cell = findEmptyCell(g, x || 0, y || 0);
@@ -42,13 +46,14 @@ var solver = (function(R) {
     var domain = constrain(g, cell);
 
     while (i < domain.length) {
-      g[cell.y][cell.x] = domain[i];
+      update(g, cell, domain[i]); 
 
       if (solve(g, cell.x, cell.y)) {               
         return true;
       }
+
       // mark cell as empty and backtrack    
-      g[cell.y][cell.x] = EMPTY;
+      update(g, cell, EMPTY);
       i += 1;
     }
     return false;
@@ -78,7 +83,8 @@ var solver = (function(R) {
 
   return {
     solve: solve,
-    setRenderer: function(fn) { render = fn; }
+    setRenderer: function(fn) { render = fn; },
+    setUpdate: function(fn) { update = fn; }
   };   
 
 }(ramda));
