@@ -5,7 +5,7 @@
       var htmlStr = R.reduce(function(acc, row) {
         return acc += '<tr>' + 
                R.reduce(function(acc, cell) {
-                 return acc + '<td>' + cell + '</td>';
+                 return acc + '<td>' + (cell || '') + '</td>';
                }, '', row) +
                '</tr>';
       }, '', g);
