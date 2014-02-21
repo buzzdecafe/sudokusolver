@@ -1,0 +1,18 @@
+{
+  "author": "Buzz de Cafe <m_hur@yahoo.com> (buzzdecafe.com)",
+  "name": "SudokuSolver",
+  "description": "Sudoku Solver",
+  "version": "0.0.1",
+  "homepage": "https://www.github.com/buzzdecafe/sudokusolver",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/buzzdecafe/sudokusolver.git"
+  },
+  "scripts": {
+    "postinstall": "scripts/cpRamda.js"
+  },
+  "dependencies": {
+    "ramda":"https://api.github.com/repos/Ramda/ramda/tarball"
+  }
+}
