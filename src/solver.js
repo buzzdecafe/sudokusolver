@@ -1,7 +1,7 @@
 var solver = (function(R) {
   
   var EMPTY = 0;
-  var defaultGrid = [
+  var grid = [
     [5, 0, 0,   1, 0, 0,   9, 3, 0],
     [6, 4, 0,   0, 7, 3,   0, 8, 0],
     [0, 0, 1,   8, 0, 5,   0, 0, 0],
@@ -14,6 +14,11 @@ var solver = (function(R) {
     [0, 8, 0,   9, 3, 0,   0, 7, 1],
     [0, 1, 3,   0, 0, 8,   0, 0, 9]
   ];
+
+  function load(g) {
+    grid = g || grid;
+    render(grid);
+  }
 
   function constrain(g, cell) {
     var rowWise = R.difference(R.range(1,10), g[cell.y]);
@@ -34,7 +39,7 @@ var solver = (function(R) {
   }
 
   function solve(g, x, y) {
-    g = g || defaultGrid;
+    g = g || grid;
     var cell = findEmptyCell(g, x || 0, y || 0);
     var i = 0;
     
@@ -82,6 +87,7 @@ var solver = (function(R) {
   }
 
   return {
+    load: load,
     solve: solve,
     setRenderer: function(fn) { render = fn; }
   };   

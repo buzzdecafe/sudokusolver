@@ -14,4 +14,5 @@
     };
     
     solver.setRenderer(render);
+    solver.load();
   }(ramda, solver));
