@@ -88,4 +88,4 @@ var solver = (function(R) {
 
 }(ramda));
 
-  
+ 
