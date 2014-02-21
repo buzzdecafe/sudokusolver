@@ -1,4 +1,4 @@
 sudokusolver
 ============
 
-sudoku solver
+Everything is in the gh-pages branch
