@@ -35,15 +35,19 @@ Grid.prototype = {
     return R.pluck(x, this.matrix);
   },
 
-  boxToArray: function(cell) {
-    var boxCol = Math.floor(cell.x/3) * 3;
-    var boxRow = Math.floor(cell.y/3) * 3;
-    
-    return R.reduce(function(acc, row) {  
-      return acc.concat(R.map(R.I, row.slice(boxCol, 3)));
-    }, [], this.matrix.slice(boxRow, 3));
-  }
+  getBox: function(cell) {
+    return {
+      x: Math.floor(cell.x/3) * 3,
+      y: Math.floor(cell.y/3) * 3
+    };
+  },
 
+  boxToArray: function(cell) {
+    var box = this.getBox(cell); 
+    return R.reduce(function(acc, row) {  
+      return acc.concat(R.map(R.I, row.slice(box.x, box.x + 3)));
+    }, [], this.matrix.slice(box.y, box.y + 3));
+  }
 
 };
 
