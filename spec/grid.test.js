@@ -1,6 +1,5 @@
 // test Grid
 
-var E = require('./env');
 var Grid = require('../src/js/Grid.js');
 
 describe("Grid ::", function() {
