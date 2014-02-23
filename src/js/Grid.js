@@ -32,11 +32,11 @@ Grid.prototype = {
     this.matrix[cell.y][cell.x] = value;
   },
 
-  colToArray function(x) {
+  colToArray: function(x) {
     return R.pluck(x, this.matrix);
   },
 
-  boxToArray function(cell) {
+  boxToArray: function(cell) {
     var boxCol = Math.floor(cell.x/3) * 3;
     var boxRow = Math.floor(cell.y/3) * 3;
     
