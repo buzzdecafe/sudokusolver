@@ -1,4 +1,3 @@
-
 var R = require('./ramda.js');
 
 var EMPTY = 0;
@@ -15,9 +14,9 @@ Grid.prototype = {
 
   findEmptyCell: function() {
     var cell = {};
-    cell.y = R.findIndex(function(r) { return R.contains(EMPTY, r); }, g);
+    cell.y = R.findIndex(function(r) { return R.contains(EMPTY, r); }, this.matrix);
     if (cell.y !== false) {
-      cell.x = R.findIndex(function(c) { return c === EMPTY; }, g[cell.y]);
+      cell.x = R.findIndex(function(c) { return c === EMPTY; }, this.matrix[cell.y]);
     }
     return (cell.y !== false && cell.x !== false) ? cell : false;
   },
