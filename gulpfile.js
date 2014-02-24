@@ -13,15 +13,15 @@ gulp.task('clean', function() {
 });
 
 gulp.task('test', function() {
+  gulp.src('src/js/*')
+    .pipe(jshint());                
   gulp.src('spec/*.js')
     .pipe(jasmine());
 });
 
 gulp.task('scripts', function() {
   gulp.src('src/js/*.js')
-    .pipe(browserify({
-      debug : !util.env.production
-    }))
+    .pipe(browserify({debug: true}))
     .pipe(concat('app.js'))
     .pipe(gulp.dest('build/js'))
 //    .pipe(notify('scripts task complete'));

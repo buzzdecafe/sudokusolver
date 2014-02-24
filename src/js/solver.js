@@ -1,4 +1,4 @@
-var R = require('./ramda.js');
+var R = require('ramda');
 var Grid = require('./Grid.js');
 
 var grid = [
