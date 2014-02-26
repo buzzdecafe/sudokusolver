@@ -1,4 +1,5 @@
 var solver = require('./solver.js');
+var R = require('ramda');
 
 var render = function(g) {
   var grid = document.getElementById('grid');
@@ -8,10 +9,14 @@ var render = function(g) {
              return acc + '<td>' + (cell || '') + '</td>';
            }, '', row) +
            '</tr>';
-  }, '', g);
+  }, '', g.matrix);
  
   grid.innerHTML = htmlStr;
 };
 
 solver.setRenderer(render);
 solver.load();
+
+// attach to DOM
+solveBtn = document.getElementById('solveBtn');
+solveBtn.addEventListener('click', function() { solver.solve(); });

@@ -1,5 +1,4 @@
 var R = require('ramda');
-
 var EMPTY = 0;
 
 function Grid(m) {
