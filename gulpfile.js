@@ -20,15 +20,15 @@ gulp.task('test', function() {
 });
 
 gulp.task('scripts', function() {
-  gulp.src('src/js/*.js')
-    .pipe(browserify({debug: true, standalone: 'app.js'}))
+  gulp.src('src/js/run.js')
+    .pipe(browserify())
     .pipe(concat('app.js'))
     .pipe(gulp.dest('build/js'))
 //    .pipe(notify('scripts task complete'));
 });
 
 gulp.task('debug', function() {
-  gulp.src('src/js/*.js')
+  gulp.src('src/js/run.js')
     .pipe(browserify({debug: true}))
     .pipe(gulp.dest('build/js'))
 });
