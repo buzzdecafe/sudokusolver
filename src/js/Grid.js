@@ -31,6 +31,21 @@ Grid.prototype = {
     }, [], this.matrix);
   },
 
+  getCellsByDomain: function() {
+    var grid = this;
+    return R.foldl(function(acc, cell) {
+      var key = grid.constrain(cell).length;
+      acc[key] = acc[key] || [];
+      acc[key].push(cell);
+      return acc;
+    }, {}, this.getAllEmptyCells());
+  },
+
+  getMostConstrainedCells: function() {
+    var counts = this.getCellsByDomain();
+    return counts[Math.min.apply(Math, R.keys(counts))];
+  },
+
   constrain: function(cell) {
     var rowWise = R.difference(R.range(1,10), this.matrix[cell.y]);
     var colWise = R.difference(rowWise, this.colToArray(cell.x));

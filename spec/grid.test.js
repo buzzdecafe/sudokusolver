@@ -58,6 +58,44 @@ describe("Grid ::", function() {
       });
     });  
 
+    describe("getCellsByDomain ::", function() {
+      it("returns empty cells indexed by the size of their domains", function() {
+        expect(grid.getCellsByDomain()).toEqual({ 
+          1 : [ { x : 4, y : 0 }, { x : 8, y : 2 }, { x : 5, y : 8 }, { x : 6, y : 8 } ], 
+          2 : [ { x : 2, y : 0 }, { x : 3, y : 0 }, { x : 7, y : 0 }, { x : 1, y : 1 }, 
+                { x : 8, y : 1 }, { x : 1, y : 2 }, { x : 2, y : 2 }, { x : 2, y : 3 }, 
+                { x : 5, y : 4 }, { x : 6, y : 5 }, { x : 0, y : 6 }, { x : 4, y : 6 }, 
+                { x : 7, y : 6 }, { x : 0, y : 7 }, { x : 2, y : 7 }, { x : 7, y : 7 }, 
+                { x : 1, y : 8 } ], 
+          3 : [ { x : 3, y : 1 }, { x : 6, y : 1 }, { x : 4, y : 2 }, { x : 0, y : 3 }, 
+                { x : 0, y : 5 }, { x : 6, y : 6 }, { x : 5, y : 7 }, { x : 4, y : 8 } ], 
+          4 : [ { x : 5, y : 1 }, { x : 3, y : 3 }, { x : 5, y : 3 }, { x : 8, y : 3 }, 
+                { x : 1, y : 4 }, { x : 3, y : 4 }, { x : 4, y : 4 }, { x : 7, y : 4 }, 
+                { x : 1, y : 5 }, { x : 3, y : 5 }, { x : 5, y : 5 }, { x : 8, y : 5 }, 
+                { x : 3, y : 7 } ], 
+          5 : [ { x : 4, y : 3 }, { x : 7, y : 3 }, { x : 4, y : 5 } ] 
+        });
+
+        expect(grid.constrain({x: 6, y: 8}).length).toBe(1);
+        expect(grid.constrain({x: 1, y: 2}).length).toBe(2);
+        expect(grid.constrain({x: 7, y: 7}).length).toBe(2);
+        expect(grid.constrain({x: 5, y: 4}).length).toBe(2);
+        expect(grid.constrain({x: 6, y: 6}).length).toBe(3);
+        expect(grid.constrain({x: 0, y: 5}).length).toBe(3);
+        expect(grid.constrain({x: 3, y: 7}).length).toBe(4);
+        expect(grid.constrain({x: 8, y: 5}).length).toBe(4);
+        expect(grid.constrain({x: 4, y: 3}).length).toBe(5);
+      });
+    });
+
+    describe("getMostConstrainedCells ::", function() {
+      it("returns a list of the cells with the smallest domain", function() {
+        expect(grid.getMostConstrainedCells()).toEqual([
+          { x: 4, y: 0 }, { x: 8, y: 2 }, { x: 5, y: 8 }, { x: 6, y: 8 } 
+        ]);
+      });
+    });
+
     describe("constrain ::", function() {
       it("reduces the domain of a given cell", function() {
         expect(grid.constrain({x: 4, y: 4})).toEqual([2,3,5,9]);
