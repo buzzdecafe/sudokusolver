@@ -1458,21 +1458,36 @@ Grid.prototype = {
   findEmptyCell: function() {
     var cell = {};
     cell.y = R.findIndex(function(r) { return R.contains(EMPTY, r); }, this.matrix);
-    if (cell.y !== false) {
+    if (cell.y !== null) {
       cell.x = R.findIndex(function(c) { return c === EMPTY; }, this.matrix[cell.y]);
     }
-    return (cell.y !== false && cell.x !== false) ? cell : false;
+    return (cell.y !== null && cell.x !== null) ? cell : false;
   },
 
   getAllEmptyCells: function() {
     return R.foldl.idx(function(acc, row, yIndex) {
       return acc.concat(R.foldl.idx(function(innerAcc, value, xIndex) {
         if (value === 0) {
-          innerAcc.concat({x: xIndex, y: yIndex});
+          innerAcc.push({x: xIndex, y: yIndex});
         }
         return innerAcc; 
       }, [], row));
     }, [], this.matrix);
+  },
+
+  getCellsByDomain: function() {
+    var grid = this;
+    return R.foldl(function(acc, cell) {
+      var key = grid.constrain(cell).length;
+      acc[key] = acc[key] || [];
+      acc[key].push(cell);
+      return acc;
+    }, {}, this.getAllEmptyCells());
+  },
+
+  getMostConstrainedCells: function() {
+    var counts = this.getCellsByDomain();
+    return counts[Math.min.apply(Math, R.keys(counts))];
   },
 
   constrain: function(cell) {
@@ -1529,9 +1544,17 @@ var render = function(g) {
 solver.setRenderer(render);
 solver.load();
 
+
 // attach to DOM
+var opCount = document.getElementById('opCount');
+var showOpCount = function() {
+  opCount.textContent = solver.getOpCount();
+};
 var solveBtn = document.getElementById('solveBtn');
-solveBtn.addEventListener('click', function() { solver.solve(); });
+solveBtn.addEventListener('click', function() { 
+  solver.solve() && showOpCount(); 
+});
+
 
 },{"./solver.js":4,"ramda":1}],4:[function(require,module,exports){
 var R = require('ramda');
@@ -1551,6 +1574,7 @@ var grid = new Grid([
   [0, 1, 3,   0, 0, 8,   0, 0, 9]
 ]);
 
+var ops = 0;
 
 function render(g) {
   console.log("solved");
@@ -1565,12 +1589,13 @@ function load(g) {
 }
 
 function solve(g) {
+  ops += 1;
   if (!g) {
     g = grid;
     load(g);
   }
 
-  var cell = g.findEmptyCell();
+  var cell = R.car(g.getMostConstrainedCells());
   var i = 0;
   
   if (!cell) {
@@ -1595,6 +1620,7 @@ function solve(g) {
 }
 
 module.exports = {
+  getOpCount: function() { return ops; },
   load: load,
   setRenderer: function(fn) { 
     render = fn; 

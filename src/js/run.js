@@ -17,6 +17,14 @@ var render = function(g) {
 solver.setRenderer(render);
 solver.load();
 
+
 // attach to DOM
+var opCount = document.getElementById('opCount');
+var showOpCount = function() {
+  opCount.textContent = solver.getOpCount();
+};
 var solveBtn = document.getElementById('solveBtn');
-solveBtn.addEventListener('click', function() { solver.solve(); });
+solveBtn.addEventListener('click', function() { 
+  solver.solve() && showOpCount(); 
+});
+

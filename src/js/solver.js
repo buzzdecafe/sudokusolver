@@ -15,6 +15,7 @@ var grid = new Grid([
   [0, 1, 3,   0, 0, 8,   0, 0, 9]
 ]);
 
+var ops = 0;
 
 function render(g) {
   console.log("solved");
@@ -29,12 +30,13 @@ function load(g) {
 }
 
 function solve(g) {
+  ops += 1;
   if (!g) {
     g = grid;
     load(g);
   }
 
-  var cell = g.findEmptyCell();
+  var cell = R.car(g.getMostConstrainedCells());
   var i = 0;
   
   if (!cell) {
@@ -59,6 +61,7 @@ function solve(g) {
 }
 
 module.exports = {
+  getOpCount: function() { return ops; },
   load: load,
   setRenderer: function(fn) { 
     render = fn; 
