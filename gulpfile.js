@@ -29,7 +29,7 @@ gulp.task('scripts', function() {
 
 gulp.task('debug', function() {
   gulp.src('src/js/run.js')
-    .pipe(browserify({debug: true}))
+    .pipe(browserify({debug: true, standalone: 'solver'}))
     .pipe(gulp.dest('build/js'))
 });
 

@@ -18,5 +18,5 @@ solver.setRenderer(render);
 solver.load();
 
 // attach to DOM
-solveBtn = document.getElementById('solveBtn');
+var solveBtn = document.getElementById('solveBtn');
 solveBtn.addEventListener('click', function() { solver.solve(); });

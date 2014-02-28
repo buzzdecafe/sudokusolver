@@ -20,6 +20,17 @@ Grid.prototype = {
     return (cell.y !== false && cell.x !== false) ? cell : false;
   },
 
+  getAllEmptyCells: function() {
+    return R.foldl.idx(function(acc, row, yIndex) {
+      return acc.concat(R.foldl.idx(function(innerAcc, value, xIndex) {
+        if (value === 0) {
+          innerAcc.push({x: xIndex, y: yIndex});
+        }
+        return innerAcc; 
+      }, [], row));
+    }, [], this.matrix);
+  },
+
   constrain: function(cell) {
     var rowWise = R.difference(R.range(1,10), this.matrix[cell.y]);
     var colWise = R.difference(rowWise, this.colToArray(cell.x));

@@ -505,18 +505,25 @@
 
         // --------
 
+        // (Internal use only) The basic implementation of filter.
+        var internalFoldl = _(function(useIdx, fn, acc, list) {
+            if (list && list.length === Infinity) {
+                return list.foldl(fn, acc); // TODO: figure out useIdx
+            }
+            var idx = -1, len = list.length, result = [];
+            while (++idx < len) {
+                acc = (useIdx) ? fn(acc, list[idx], idx, list) : fn(acc, list[idx]);
+            }
+            return acc;
+        });
+
         // Returns a single item, by successively calling the function with the current element and the the next
         // element of the list, passing the result to the next call.  We start with the `acc` parameter to get
         // things going.  The function supplied should accept this running value and the latest element of the list,
         // and return an updated value.
-        var foldl = R.foldl = _(function(fn, acc, list) {
-            var idx = -1, len = list.length;
-            while(++idx < len) {
-                acc = fn(acc, list[idx]);
-            }
-            return acc;
-        });
+        var foldl = R.foldl = internalFoldl(false);
         aliasFor("foldl").is("reduce");
+        R.foldl.idx = internalFoldl(true);
 
         // Much like `foldl`/`reduce`, except that this takes as its starting value the first element in the list.
         R.foldl1 = _(function (fn, list) {
@@ -680,7 +687,7 @@
                     return list[idx];
                 }
             }
-            return false;
+            return null;
         });
 
         // Returns the index of first element of the list which matches the predicate, or `false` if no element matches.
@@ -691,7 +698,7 @@
                     return idx;
                 }
             }
-            return false;
+            return null;
         });
 
         // Returns the last element of the list which matches the predicate, or `false` if no element matches.
@@ -702,7 +709,7 @@
                     return list[idx];
                 }
             }
-            return false;
+            return null;
         });
 
         // Returns the index of last element of the list which matches the predicate, or `false` if no element matches.
@@ -713,7 +720,7 @@
                     return idx;
                 }
             }
-            return false;
+            return null;
         });
 
         // Returns `true` if all elements of the list match the predicate, `false` if there are any that don't.
@@ -1457,6 +1464,17 @@ Grid.prototype = {
     return (cell.y !== false && cell.x !== false) ? cell : false;
   },
 
+  getAllEmptyCells: function() {
+    return R.foldl.idx(function(acc, row, yIndex) {
+      return acc.concat(R.foldl.idx(function(innerAcc, value, xIndex) {
+        if (value === 0) {
+          innerAcc.concat({x: xIndex, y: yIndex});
+        }
+        return innerAcc; 
+      }, [], row));
+    }, [], this.matrix);
+  },
+
   constrain: function(cell) {
     var rowWise = R.difference(R.range(1,10), this.matrix[cell.y]);
     var colWise = R.difference(rowWise, this.colToArray(cell.x));
@@ -1512,7 +1530,7 @@ solver.setRenderer(render);
 solver.load();
 
 // attach to DOM
-solveBtn = document.getElementById('solveBtn');
+var solveBtn = document.getElementById('solveBtn');
 solveBtn.addEventListener('click', function() { solver.solve(); });
 
 },{"./solver.js":4,"ramda":1}],4:[function(require,module,exports){
