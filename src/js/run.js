@@ -17,14 +17,13 @@ var render = function(g) {
 solver.setRenderer(render);
 solver.load();
 
-
 // attach to DOM
-var radios = document.getElementsByName('algo');
+var radios = document.getElementsByName('strategy');
 var i = 0;
 while (i < radios.length) {
   radios[i].addEventListener('change', function(e) {
     if (this.checked) {
-      solver.setAlgorithm(this.value);
+      solver.setStrategy(this.value);
     }
   });
   i++;
@@ -32,7 +31,10 @@ while (i < radios.length) {
 
 var solveBtn = document.getElementById('solveBtn');
 solveBtn.addEventListener('click', function() { 
+  resetBtn.setAttribute('disabled', true);
   solver.solve() && showOpCount() && showDuration(); 
+  resetBtn.removeAttribute('disabled');
+  this.setAttribute('disabled', true);
 });
 
 var resetBtn = document.getElementById('resetBtn');
@@ -40,6 +42,7 @@ resetBtn.addEventListener('click', function() {
   solver.reset();
   showOpCount(' ');
   showDuration(' ');
+  solveBtn.removeAttribute('disabled');
 });
 
 var opCount = document.getElementById('opCount');

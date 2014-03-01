@@ -1525,31 +1525,6 @@ module.exports = Grid;
 
 
 },{"ramda":1}],3:[function(require,module,exports){
-var R = require('ramda');
-var Grid = require('./Grid.js');
-
-var selectedAlgo;
-var algoMap = {
-  bruteforce: function(g) {
-    return g.findEmptyCell();
-  },
-  constrained: function(g) {
-    return R.car(g.getMostConstrainedCells());
-  }
-};
-
-
-module.exports = {
-  get: function() {
-    return selectedAlgo || algoMap.bruteforce;
-  },
-  set: function(type) {
-    selectedAlgo = algoMap[type];
-  }
-};
-
-
-},{"./Grid.js":2,"ramda":1}],4:[function(require,module,exports){
 var solver = require('./solver.js');
 var R = require('ramda');
 
@@ -1569,14 +1544,13 @@ var render = function(g) {
 solver.setRenderer(render);
 solver.load();
 
-
 // attach to DOM
-var radios = document.getElementsByName('algo');
+var radios = document.getElementsByName('strategy');
 var i = 0;
 while (i < radios.length) {
   radios[i].addEventListener('change', function(e) {
     if (this.checked) {
-      solver.setAlgorithm(this.value);
+      solver.setStrategy(this.value);
     }
   });
   i++;
@@ -1584,7 +1558,10 @@ while (i < radios.length) {
 
 var solveBtn = document.getElementById('solveBtn');
 solveBtn.addEventListener('click', function() { 
+  resetBtn.setAttribute('disabled', true);
   solver.solve() && showOpCount() && showDuration(); 
+  resetBtn.removeAttribute('disabled');
+  this.setAttribute('disabled', true);
 });
 
 var resetBtn = document.getElementById('resetBtn');
@@ -1592,6 +1569,7 @@ resetBtn.addEventListener('click', function() {
   solver.reset();
   showOpCount(' ');
   showDuration(' ');
+  solveBtn.removeAttribute('disabled');
 });
 
 var opCount = document.getElementById('opCount');
@@ -1607,10 +1585,10 @@ var showDuration = function(s) {
 };
 
 
-},{"./solver.js":5,"ramda":1}],5:[function(require,module,exports){
+},{"./solver.js":4,"ramda":1}],4:[function(require,module,exports){
 var R = require('ramda');
 var Grid = require('./Grid.js');
-var algorithm = require('./algorithm.js');
+var strategy = require('./strategy.js');
 
 
 function getMatrix() {
@@ -1660,7 +1638,7 @@ function solve(g) {
     load(g);
   }
 
-  var cell = algorithm.get()(g);
+  var cell = strategy.get()(g);
   var i = 0;
   
   if (!cell) {
@@ -1693,7 +1671,7 @@ module.exports = {
   getOpCount: function() { return ops; },
   load: load,
   reset: reset,
-  setAlgorithm: algorithm.set,
+  setStrategy: strategy.set,
   setRenderer: function(fn) { 
     render = fn; 
   },
@@ -1703,4 +1681,29 @@ module.exports = {
 
  
 
-},{"./Grid.js":2,"./algorithm.js":3,"ramda":1}]},{},[4])
+},{"./Grid.js":2,"./strategy.js":5,"ramda":1}],5:[function(require,module,exports){
+var R = require('ramda');
+var Grid = require('./Grid.js');
+
+var selectedAlgo;
+var algoMap = {
+  bruteforce: function(g) {
+    return g.findEmptyCell();
+  },
+  constrained: function(g) {
+    return R.car(g.getMostConstrainedCells());
+  }
+};
+
+
+module.exports = {
+  get: function() {
+    return selectedAlgo || algoMap.bruteforce;
+  },
+  set: function(type) {
+    selectedAlgo = algoMap[type];
+  }
+};
+
+
+},{"./Grid.js":2,"ramda":1}]},{},[3])

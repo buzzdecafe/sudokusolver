@@ -1,6 +1,6 @@
 var R = require('ramda');
 var Grid = require('./Grid.js');
-var algorithm = require('./algorithm.js');
+var strategy = require('./strategy.js');
 
 
 function getMatrix() {
@@ -50,7 +50,7 @@ function solve(g) {
     load(g);
   }
 
-  var cell = algorithm.get()(g);
+  var cell = strategy.get()(g);
   var i = 0;
   
   if (!cell) {
@@ -83,7 +83,7 @@ module.exports = {
   getOpCount: function() { return ops; },
   load: load,
   reset: reset,
-  setAlgorithm: algorithm.set,
+  setStrategy: strategy.set,
   setRenderer: function(fn) { 
     render = fn; 
   },

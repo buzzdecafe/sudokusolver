@@ -9,12 +9,12 @@
 
 <table id="grid"></table>
 <div id="algochooser">
-  Algorithm:<br/>
-  <input type="radio" name="algo" value="bruteforce" /> Brute force<br/>
-  <input type="radio" name="algo" value="constrained" /> Constrained
+  Strategy:<br/>
+  <input type="radio" name="strategy" value="bruteforce" checked /> Brute force<br/>
+  <input type="radio" name="strategy" value="constrained" /> Constrained
 </div>
 <button id="solveBtn">Solve</button>
-<button id="resetBtn">Reset</button>
+<button id="resetBtn" disabled="true">Reset</button>
 <div>
   <p>Operations: <span id="opCount"></span></p>
   <p>Duration: <span id="duration"></span>ms</p>
