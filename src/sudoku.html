@@ -8,9 +8,16 @@
 <h1>Solver</h1>
 
 <table id="grid"></table>
+<div id="algochooser">
+  Algorithm:<br/>
+  <input type="radio" name="algo" value="bruteforce" /> Brute force<br/>
+  <input type="radio" name="algo" value="constrained" /> Constrained
+</div>
 <button id="solveBtn">Solve</button>
+<button id="resetBtn">Reset</button>
 <div>
   <p>Operations: <span id="opCount"></span></p>
+  <p>Duration: <span id="duration"></span>ms</p>
 </div>
 <script src="js/app.js"></script>
 </body>
