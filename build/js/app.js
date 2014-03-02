@@ -1516,6 +1516,29 @@ Grid.prototype = {
     return R.reduce(function(acc, row) {  
       return acc.concat(R.map(R.I, row.slice(box.x, box.x + 3)));
     }, [], this.matrix.slice(box.y, box.y + 3));
+  },
+
+  isValid: function() {
+    
+    function validate(arr) {
+      var nums = R.filter(function(n) { return n !== 0; }, arr);
+      return R.uniq(nums).length === nums.length;
+    }
+    
+    var rows = this.matrix;
+    var cols = R.map(this.colToArray.bind(this), R.range(0, 9));
+    var boxes = R.map(this.boxToArray.bind(this), R.foldl(function(acc, val) {
+        var cell;
+        if (val < 3) {
+          cell = {x: 0, y: (val * 3)};
+        } else if (val < 6) {
+          cell = {x: 3, y : ((val % 3) * 3)};
+        } else if (val < 9) {
+          cell = {x: 6, y : ((val % 3) * 3)};
+        }
+        return acc.concat(cell);
+      }, [], R.range(0, 9)));
+    return R.all(validate, rows) && R.all(validate, cols) && R.all(validate, boxes);
   }
 
 };
@@ -1526,23 +1549,153 @@ module.exports = Grid;
 
 },{"ramda":1}],3:[function(require,module,exports){
 var solver = require('./solver.js');
-var R = require('ramda');
 
-var render = function(g) {
-  var grid = document.getElementById('grid');
-  var htmlStr = R.reduce(function(acc, row) {
-    return acc += '<tr>' + 
-           R.reduce(function(acc, cell) {
-             return acc + '<td>' + (cell || '') + '</td>';
-           }, '', row) +
-           '</tr>';
-  }, '', g.matrix);
- 
-  grid.innerHTML = htmlStr;
+solver.setRenderer('html');
+
+// DOM crap
+var loadView = require('./loadView.js');
+var solveView = require('./solveView.js');
+
+document.addEventListener('gridLoaded', function(e) {
+  loadView.style.display = 'none';
+  solveView.style.display = 'block';
+  e.callback && e.callback();
+});
+
+document.addEventListener('loadAnother', function(e) {
+  loadView.style.display = 'block';
+  solveView.style.display = 'none';
+  e.callback && e.callback();
+});
+
+
+},{"./loadView.js":5,"./solveView.js":7,"./solver.js":8}],4:[function(require,module,exports){
+
+
+
+module.exports = {
+  init: function() {
+    var undef, startTime, endTime, ops = 0;
+
+    return {
+      getDuration: function() {
+        return endTime - startTime;
+      },
+
+      start: function() {
+        startTime = new Date();
+        ops += 1;
+      },
+
+      end: function() {
+        endTime = new Date();
+      },
+
+      reset: function() {
+        startTime = undef;
+        endTime = undef;
+        ops = 0;
+      }
+
+    };
+  }
+
 };
 
-solver.setRenderer(render);
-solver.load();
+
+
+},{}],5:[function(require,module,exports){
+var R = require('ramda');
+var Grid = require('./Grid.js');
+var solver = require('./solver.js');
+
+// convert table values to js 2d-matrix
+function htmlToMatrix(tbl) {
+  var trs = tbl.getElementsByTagName('tr');
+  return R.map(function(tr) {
+    var inputs = tr.getElementsByTagName('input');
+    return R.map(function(input) {
+      return +input.value;
+    }, inputs);
+  }, trs);
+}
+
+var message = document.getElementById('message');
+
+// maybe delegate these. for now, this is good enough:
+var loadCells = document.getElementsByClassName('loadCell');
+var j = 0;
+while (j < loadCells.length) {
+  loadCells[j].addEventListener('keydown', function(e) {
+    if (this.value.length && !this.value.match(/^\d$/)) {
+      this.value = '';
+      e.stopPropagation();
+    } else {
+      message.style.display = 'none';
+      message.textContent = ''
+    }
+  });
+  j++;
+}
+
+function broadcast() {
+  document.dispatchEvent(new document.defaultView.CustomEvent('gridLoaded'), {
+    callback: function() {
+      var i = 0;
+      while (i < loadCells.length) {
+        loadCells[i].value = '';
+        i += 1;
+      }
+    }
+  });
+}
+
+var loadBtn = document.getElementById('loadBtn');
+loadBtn.addEventListener('click', function() {
+  // convert html to matrix
+  var matrix = htmlToMatrix(document.getElementById('loadTbl'));
+  var testGrid = new Grid(matrix);
+  if (testGrid.isValid(matrix)) {
+    // if grid is valid, load the grid, hide load view and show solve view
+    solver.load(testGrid);
+    broadcast();
+  } else {
+    // else warn and stay here
+    message.style.display = 'block';
+    message.textContent = 'The grid is not valid';
+  }
+});
+
+module.exports = document.getElementById('load');
+
+
+
+},{"./Grid.js":2,"./solver.js":8,"ramda":1}],6:[function(require,module,exports){
+var R = require('ramda');
+
+
+module.exports = {
+
+  console: function(g) { console.log(g); },
+  
+  html: function(g) {
+    var grid = document.getElementById('grid');
+    var htmlStr = R.reduce(function(acc, row) {
+      return acc += '<tr>' + 
+             R.reduce(function(acc, cell) {
+               return acc + '<td>' + (cell || '') + '</td>';
+             }, '', row) +
+             '</tr>';
+    }, '', g.matrix);
+     grid.innerHTML = htmlStr;
+  }
+ 
+};
+
+
+
+},{"ramda":1}],7:[function(require,module,exports){
+
 
 // attach to DOM
 var radios = document.getElementsByName('strategy');
@@ -1555,6 +1708,7 @@ while (i < radios.length) {
   });
   i++;
 }
+
 
 var solveBtn = document.getElementById('solveBtn');
 solveBtn.addEventListener('click', function() { 
@@ -1584,55 +1738,42 @@ var showDuration = function(s) {
   return true;
 };
 
+document.getElementById('anotherBtn').addEventListener('click', function() {
+  var evt = new document.defaultView.CustomEvent('loadAnother');
+  document.dispatchEvent(evt);
+});
 
-},{"./solver.js":4,"ramda":1}],4:[function(require,module,exports){
+
+module.exports = document.getElementById('solve');
+
+
+
+
+},{}],8:[function(require,module,exports){
 var R = require('ramda');
 var Grid = require('./Grid.js');
 var strategy = require('./strategy.js');
+var renderers = require('./renderers.js');
+var instrument = require('./instrument.js').init();
 
-
-function getMatrix() {
-  return [
-    [5, 0, 0,   1, 0, 0,   9, 3, 0],
-    [6, 4, 0,   0, 7, 3,   0, 8, 0],
-    [0, 0, 1,   8, 0, 5,   0, 0, 0],
-
-    [8, 0, 0,   3, 4, 0,   0, 1, 0],
-    [0, 0, 0,   5, 2, 1,   0, 0, 0],
-    [0, 2, 0,   0, 8, 9,   0, 0, 6],
-
-    [0, 0, 0,   6, 0, 7,   8, 0, 0],
-    [0, 8, 0,   9, 3, 0,   0, 7, 1],
-    [0, 1, 3,   0, 0, 8,   0, 0, 9]
-  ];
-}
-
-var grid = new Grid(getMatrix());
-var ops = 0;
-var start;
-var end;
-
-function render(g) {
-  console.log("solved");
-  g.matrix.forEach(function(r) {
-    console.log(r);
-  });
-}
+var grid;
+var matrixClone;
+var render = renderers.console;
 
 function reset() {
-  ops = 0;
-  start = void 0;
-  load(new Grid(getMatrix()));
+  instrument.reset();
+  load(new Grid(matrixClone));
 }
 
 function load(g) {
-  grid = g || grid;
+  grid = g;
+  matrixClone = R.map(R.clone, grid.matrix);
   render(grid);
 }
 
 function solve(g) {
-  start = start || new Date();
-  ops += 1;
+  instrument.start();
+  
   if (!g) {
     g = grid;
     load(g);
@@ -1643,7 +1784,7 @@ function solve(g) {
   
   if (!cell) {
     render(g);
-    end = new Date();
+    instrument.end();
     return true;
   }
 
@@ -1673,7 +1814,13 @@ module.exports = {
   reset: reset,
   setStrategy: strategy.set,
   setRenderer: function(fn) { 
-    render = fn; 
+    if (typeof fn === 'function') {
+      render = fn;
+    } else if (typeof fn === 'string') {
+      render = renderers[fn]; 
+    } else {
+      render = renderers.console;
+    }
   },
   solve: solve
 };   
@@ -1681,7 +1828,7 @@ module.exports = {
 
  
 
-},{"./Grid.js":2,"./strategy.js":5,"ramda":1}],5:[function(require,module,exports){
+},{"./Grid.js":2,"./instrument.js":4,"./renderers.js":6,"./strategy.js":9,"ramda":1}],9:[function(require,module,exports){
 var R = require('ramda');
 var Grid = require('./Grid.js');
 

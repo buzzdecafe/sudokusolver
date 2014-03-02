@@ -1,6 +1,7 @@
 // test Grid
-
+var R = require('ramda');
 var Grid = require('../src/js/Grid.js');
+var mx = require('./matrices.js');
 
 describe("Grid ::", function() {
   it("is a function", function() {
@@ -19,19 +20,7 @@ describe("Grid ::", function() {
     var grid;
 
     beforeEach(function() {
-      grid = new Grid([
-        [7, 8, 0,   0, 0, 3,   9, 0, 2],
-        [9, 0, 5,   0, 1, 0,   0, 7, 0],
-        [6, 0, 0,   5, 0, 9,   8, 1, 0],
-
-        [0, 7, 0,   0, 0, 0,   2, 0, 0],
-        [4, 0, 8,   0, 0, 0,   7, 0, 1],
-        [0, 0, 2,   0, 0, 0,   0, 4, 0],
-        
-        [0, 4, 9,   8, 0, 5,   0, 0, 7],
-        [0, 1, 0,   0, 6, 0,   5, 0, 9],
-        [8, 0, 6,   1, 0, 0,   0, 2, 4],
-      ]);
+      grid = new Grid(R.map(R.clone, mx.valid));
     });
 
     describe("findEmptyCell ::", function() {
@@ -150,6 +139,14 @@ describe("Grid ::", function() {
       });
     });
 
+    describe("isValid ::", function() {
+      it("detects if a grid has any duplicate values", function() {
+        expect(grid.isValid()).toBe(true);
+        expect((new Grid(mx.badRow)).isValid()).toBe(false);
+        expect((new Grid(mx.badCol)).isValid()).toBe(false);
+        expect((new Grid(mx.badBox)).isValid()).toBe(false);
+      });
+    });
   });
 
 });

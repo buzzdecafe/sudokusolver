@@ -1,50 +1,27 @@
 var R = require('ramda');
 var Grid = require('./Grid.js');
 var strategy = require('./strategy.js');
+var renderers = require('./renderers.js');
+var instrument = require('./instrument.js').init();
 
-
-function getMatrix() {
-  return [
-    [5, 0, 0,   1, 0, 0,   9, 3, 0],
-    [6, 4, 0,   0, 7, 3,   0, 8, 0],
-    [0, 0, 1,   8, 0, 5,   0, 0, 0],
-
-    [8, 0, 0,   3, 4, 0,   0, 1, 0],
-    [0, 0, 0,   5, 2, 1,   0, 0, 0],
-    [0, 2, 0,   0, 8, 9,   0, 0, 6],
-
-    [0, 0, 0,   6, 0, 7,   8, 0, 0],
-    [0, 8, 0,   9, 3, 0,   0, 7, 1],
-    [0, 1, 3,   0, 0, 8,   0, 0, 9]
-  ];
-}
-
-var grid = new Grid(getMatrix());
-var ops = 0;
-var start;
-var end;
-
-function render(g) {
-  console.log("solved");
-  g.matrix.forEach(function(r) {
-    console.log(r);
-  });
-}
+var grid;
+var matrixClone;
+var render = renderers.console;
 
 function reset() {
-  ops = 0;
-  start = void 0;
-  load(new Grid(getMatrix()));
+  instrument.reset();
+  load(new Grid(matrixClone));
 }
 
 function load(g) {
-  grid = g || grid;
+  grid = g;
+  matrixClone = R.map(R.clone, grid.matrix);
   render(grid);
 }
 
 function solve(g) {
-  start = start || new Date();
-  ops += 1;
+  instrument.start();
+  
   if (!g) {
     g = grid;
     load(g);
@@ -55,7 +32,7 @@ function solve(g) {
   
   if (!cell) {
     render(g);
-    end = new Date();
+    instrument.end();
     return true;
   }
 
@@ -85,7 +62,13 @@ module.exports = {
   reset: reset,
   setStrategy: strategy.set,
   setRenderer: function(fn) { 
-    render = fn; 
+    if (typeof fn === 'function') {
+      render = fn;
+    } else if (typeof fn === 'string') {
+      render = renderers[fn]; 
+    } else {
+      render = renderers.console;
+    }
   },
   solve: solve
 };   
