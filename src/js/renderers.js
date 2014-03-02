@@ -9,7 +9,7 @@ module.exports = {
     var grid = document.getElementById('grid');
     var htmlStr = R.reduce(function(acc, row) {
       return acc += '<tr>' + 
-             R.reduce(function(acc, cell) {
+             R.foldl(function(acc, cell) {
                return acc + '<td>' + (cell || '') + '</td>';
              }, '', row) +
              '</tr>';

@@ -1513,7 +1513,7 @@ Grid.prototype = {
 
   boxToArray: function(cell) {
     var box = this.getBox(cell); 
-    return R.reduce(function(acc, row) {  
+    return R.foldl(function(acc, row) {  
       return acc.concat(R.map(R.I, row.slice(box.x, box.x + 3)));
     }, [], this.matrix.slice(box.y, box.y + 3));
   },
@@ -1528,14 +1528,10 @@ Grid.prototype = {
     var rows = this.matrix;
     var cols = R.map(this.colToArray.bind(this), R.range(0, 9));
     var boxes = R.map(this.boxToArray.bind(this), R.foldl(function(acc, val) {
-        var cell;
-        if (val < 3) {
-          cell = {x: 0, y: (val * 3)};
-        } else if (val < 6) {
-          cell = {x: 3, y : ((val % 3) * 3)};
-        } else if (val < 9) {
-          cell = {x: 6, y : ((val % 3) * 3)};
-        }
+        var cell = {
+          x: Math.floor(val/3) * 3,
+          y: ((val % 3) * 3)
+        };
         return acc.concat(cell);
       }, [], R.range(0, 9)));
     return R.all(validate, rows) && R.all(validate, cols) && R.all(validate, boxes);
@@ -1689,7 +1685,7 @@ module.exports = {
     var grid = document.getElementById('grid');
     var htmlStr = R.reduce(function(acc, row) {
       return acc += '<tr>' + 
-             R.reduce(function(acc, cell) {
+             R.foldl(function(acc, cell) {
                return acc + '<td>' + (cell || '') + '</td>';
              }, '', row) +
              '</tr>';
