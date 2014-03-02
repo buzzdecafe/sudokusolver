@@ -147,6 +147,21 @@ describe("Grid ::", function() {
         expect((new Grid(mx.badBox)).isValid()).toBe(false);
       });
     });
+
+    describe("clone ::", function() {
+      it("returns a new Grid with a deep copy (i.e. not a reference) of this.matrix", function() {
+        var clone = grid.clone();
+        expect(clone.matrix).toEqual(grid.matrix);
+        expect(clone.matrix).not.toBe(grid.matrix);
+
+        grid.update({x: 8, y: 1}, 'G');
+        expect(clone.matrix[1][8]).not.toEqual(grid.matrix[1][8]);
+        
+        clone.update({x: 4, y: 4}, 'C');
+        expect(clone.matrix[4][4]).not.toEqual(grid.matrix[4][4]);
+      });
+    });
+
   });
 
 });
