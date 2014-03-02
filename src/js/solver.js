@@ -20,24 +20,20 @@ function load(g) {
 }
 
 function solve(g) {
+  var i, cell, domain;
+  g = g || grid;
+
   instrument.start();
   
-  if (!g) {
-    g = grid;
-    load(g);
-  }
-
-  var cell = strategy.selected(g);
-  var i = 0;
-  
+  cell = strategy.get()(g);
   if (!cell) {
     render(g);
     instrument.end();
     return true;
   }
 
-  var domain = g.constrain(cell);
-
+  domain = g.constrain(cell);
+  i = 0;
   while (i < domain.length) {
     g.update(cell, domain[i]); 
 
@@ -57,7 +53,6 @@ module.exports = {
   instrument: instrument,
   load: load,
   reset: reset,
-  strategy: strategy,
   setRenderer: function(fn) { 
     if (typeof fn === 'function') {
       render = fn;
@@ -67,7 +62,8 @@ module.exports = {
       render = renderers.console;
     }
   },
-  solve: solve
+  solve: solve,
+  strategy: strategy
 };   
 
 

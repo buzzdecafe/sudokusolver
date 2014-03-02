@@ -13,7 +13,9 @@ var algoMap = {
 
 
 module.exports = {
-  selected: algoMap[selectedKey],
+  get: function() {
+    return algoMap[selectedKey];
+  },
   set: function(type) {
     selectedKey = type;
   }
