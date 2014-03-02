@@ -32,15 +32,18 @@ while (j < loadCells.length) {
 }
 
 function broadcast() {
-  document.dispatchEvent(new document.defaultView.CustomEvent('gridLoaded'), {
-    callback: function() {
-      var i = 0;
-      while (i < loadCells.length) {
-        loadCells[i].value = '';
-        i += 1;
-      }
-    }
-  });
+  document.dispatchEvent(new document.defaultView.CustomEvent('gridLoaded', 
+        { detail: {
+            callback: function() {
+              var i = 0;
+              while (i < loadCells.length) {
+                loadCells[i].value = '';
+                i += 1;
+              }
+            }
+          }
+        })
+  );
 }
 
 var loadBtn = document.getElementById('loadBtn');

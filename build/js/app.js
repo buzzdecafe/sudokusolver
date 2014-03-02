@@ -1559,13 +1559,13 @@ var solveView = require('./solveView.js');
 document.addEventListener('gridLoaded', function(e) {
   loadView.style.display = 'none';
   solveView.style.display = 'block';
-  e.callback && e.callback();
+  e.detail && e.detail.callback && e.detail.callback();
 });
 
 document.addEventListener('loadAnother', function(e) {
   loadView.style.display = 'block';
   solveView.style.display = 'none';
-  e.callback && e.callback();
+  e.detail && e.detail.callback && e.detail.callback();
 });
 
 
@@ -1643,15 +1643,18 @@ while (j < loadCells.length) {
 }
 
 function broadcast() {
-  document.dispatchEvent(new document.defaultView.CustomEvent('gridLoaded'), {
-    callback: function() {
-      var i = 0;
-      while (i < loadCells.length) {
-        loadCells[i].value = '';
-        i += 1;
-      }
-    }
-  });
+  document.dispatchEvent(new document.defaultView.CustomEvent('gridLoaded', 
+        { detail: {
+            callback: function() {
+              var i = 0;
+              while (i < loadCells.length) {
+                loadCells[i].value = '';
+                i += 1;
+              }
+            }
+          }
+        })
+  );
 }
 
 var loadBtn = document.getElementById('loadBtn');
