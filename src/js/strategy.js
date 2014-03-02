@@ -1,7 +1,7 @@
 var R = require('ramda');
 var Grid = require('./Grid.js');
 
-var selectedAlgo;
+var selectedKey = 'bruteforce';
 var algoMap = {
   bruteforce: function(g) {
     return g.findEmptyCell();
@@ -13,11 +13,9 @@ var algoMap = {
 
 
 module.exports = {
-  get: function() {
-    return selectedAlgo || algoMap.bruteforce;
-  },
+  selected: algoMap[selectedKey],
   set: function(type) {
-    selectedAlgo = algoMap[type];
+    selectedKey = type;
   }
 };
 

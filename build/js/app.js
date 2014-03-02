@@ -1582,8 +1582,12 @@ module.exports = {
         return endTime - startTime;
       },
 
+      getOps: function() {
+        return ops;
+      },
+
       start: function() {
-        startTime = new Date();
+        startTime = startTime || new Date();
         ops += 1;
       },
 
@@ -1695,7 +1699,7 @@ module.exports = {
 
 
 },{"ramda":1}],7:[function(require,module,exports){
-
+var solver = require('./solver.js');
 
 // attach to DOM
 var radios = document.getElementsByName('strategy');
@@ -1703,17 +1707,20 @@ var i = 0;
 while (i < radios.length) {
   radios[i].addEventListener('change', function(e) {
     if (this.checked) {
-      solver.setStrategy(this.value);
+      solver.strategy.set(this.value);
     }
   });
   i++;
 }
 
-
 var solveBtn = document.getElementById('solveBtn');
 solveBtn.addEventListener('click', function() { 
   resetBtn.setAttribute('disabled', true);
-  solver.solve() && showOpCount() && showDuration(); 
+  if (solver.solve()) {
+    showOpCount() && showDuration(); 
+  } else {
+    alert('crap, failed to solve it! This should never happen');
+  }
   resetBtn.removeAttribute('disabled');
   this.setAttribute('disabled', true);
 });
@@ -1728,13 +1735,13 @@ resetBtn.addEventListener('click', function() {
 
 var opCount = document.getElementById('opCount');
 var showOpCount = function(s) {
-  opCount.textContent = s || solver.getOpCount();
+  opCount.textContent = s || solver.instrument.getOps();
   return true;
 };
 
 var duration = document.getElementById('duration');
 var showDuration = function(s) {
-  duration.textContent = s || solver.getDuration();
+  duration.textContent = s || solver.instrument.getDuration();
   return true;
 };
 
@@ -1749,7 +1756,7 @@ module.exports = document.getElementById('solve');
 
 
 
-},{}],8:[function(require,module,exports){
+},{"./solver.js":8}],8:[function(require,module,exports){
 var R = require('ramda');
 var Grid = require('./Grid.js');
 var strategy = require('./strategy.js');
@@ -1779,7 +1786,7 @@ function solve(g) {
     load(g);
   }
 
-  var cell = strategy.get()(g);
+  var cell = strategy.selected(g);
   var i = 0;
   
   if (!cell) {
@@ -1806,13 +1813,10 @@ function solve(g) {
 
 
 module.exports = {
-  getDuration: function() {
-    return end.getTime() - start.getTime() 
-  },
-  getOpCount: function() { return ops; },
+  instrument: instrument,
   load: load,
   reset: reset,
-  setStrategy: strategy.set,
+  strategy: strategy,
   setRenderer: function(fn) { 
     if (typeof fn === 'function') {
       render = fn;
@@ -1832,7 +1836,7 @@ module.exports = {
 var R = require('ramda');
 var Grid = require('./Grid.js');
 
-var selectedAlgo;
+var selectedKey = 'bruteforce';
 var algoMap = {
   bruteforce: function(g) {
     return g.findEmptyCell();
@@ -1844,11 +1848,9 @@ var algoMap = {
 
 
 module.exports = {
-  get: function() {
-    return selectedAlgo || algoMap.bruteforce;
-  },
+  selected: algoMap[selectedKey],
   set: function(type) {
-    selectedAlgo = algoMap[type];
+    selectedKey = type;
   }
 };
 

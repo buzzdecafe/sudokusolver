@@ -27,7 +27,7 @@ function solve(g) {
     load(g);
   }
 
-  var cell = strategy.get()(g);
+  var cell = strategy.selected(g);
   var i = 0;
   
   if (!cell) {
@@ -54,13 +54,10 @@ function solve(g) {
 
 
 module.exports = {
-  getDuration: function() {
-    return end.getTime() - start.getTime() 
-  },
-  getOpCount: function() { return ops; },
+  instrument: instrument,
   load: load,
   reset: reset,
-  setStrategy: strategy.set,
+  strategy: strategy,
   setRenderer: function(fn) { 
     if (typeof fn === 'function') {
       render = fn;

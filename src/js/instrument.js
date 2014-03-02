@@ -10,8 +10,12 @@ module.exports = {
         return endTime - startTime;
       },
 
+      getOps: function() {
+        return ops;
+      },
+
       start: function() {
-        startTime = new Date();
+        startTime = startTime || new Date();
         ops += 1;
       },
 
