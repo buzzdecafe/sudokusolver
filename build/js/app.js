@@ -1535,6 +1535,10 @@ Grid.prototype = {
         return acc.concat(cell);
       }, [], R.range(0, 9)));
     return R.all(validate, rows) && R.all(validate, cols) && R.all(validate, boxes);
+  },
+
+  clone: function() {
+    return new Grid(R.map(R.clone, this.matrix));
   }
 
 };
