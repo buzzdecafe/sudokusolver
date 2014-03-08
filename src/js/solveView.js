@@ -1,6 +1,11 @@
 var solver = require('./solver.js');
 
 // attach to DOM
+var fwdCheck = document.getElementById('fwdcheck');
+fwdCheck.addEventListener('click', function(e) {
+  solver.enableForwardChecking(this.value === '1');
+});
+
 var radios = document.getElementsByName('strategy');
 var i = 0;
 while (i < radios.length) {
@@ -15,6 +20,7 @@ while (i < radios.length) {
 var solveBtn = document.getElementById('solveBtn');
 solveBtn.addEventListener('click', function() { 
   resetBtn.setAttribute('disabled', true);
+  fwdCheck.setAttribute('disabled', true);
   if (solver.solve()) {
     showOpCount() && showDuration(); 
   } else {
@@ -30,6 +36,7 @@ resetBtn.addEventListener('click', function() {
   showOpCount(' ');
   showDuration(' ');
   solveBtn.removeAttribute('disabled');
+  fwdCheck.removeAttribute('disabled');
 });
 
 var opCount = document.getElementById('opCount');

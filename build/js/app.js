@@ -1442,6 +1442,63 @@
 }));
 
 },{}],2:[function(require,module,exports){
+var Grid = require('./Grid.js');
+var R = require('ramda');
+
+function DomainBoard(grid) {
+  this.matrix = R.map.idx(function(row, yIndex) {
+    return R.map.idx(function(cell, xindex) {
+      return cell ? [cell] : grid.constrain({x: xIndex, y: yIndex});
+    }, row);
+  }, grid.matrix);
+  this.history = [this.store()];
+};
+
+DomainBoard.prototype = Grid.prototype;
+
+DomainBoard.prototype.constructor = DomainBoard;
+
+DomainBoard.prototype.updateDomain = function(value, arr) {
+  return R.map(function(dom) {
+    var i = dom.indexOf(value);
+    return (i > -1) ? dom.splice(i, 1) : dom;
+  }, arr);
+};
+
+DomainBoard.prototype.propagate = function(cell, value) {
+  var row = this.matrix[cell.y];
+  var col = this.colToArray(cell.x);
+  var box = this.boxToArray(cell);
+  var ok = false;
+  var hasDomain = function(a) { return a.length > 0; }; 
+  // push onto the stack
+  this.store();
+  
+  ok = all(hasDomain, this.updateDomain(value, row)) &&
+       all(hasDomain, this.updateDomain(value, col)) &&
+       all(hasDomain, this.updateDomain(value, box));
+
+  // if any empty domains, revert and return false;
+  if (ok) {
+    return true;
+  } else {
+    this.revert();
+    return false;
+  }
+};
+
+DomainBoard.prototype.store = function() {
+  return JSON.stringify(this.matrix);
+};
+
+DomainBoard.prototype.revert = function() {
+  this.matrix = JSON.parse(this.history.pop()); 
+};
+
+module.exports = DomainBoard;
+
+
+},{"./Grid.js":3,"ramda":1}],3:[function(require,module,exports){
 var R = require('ramda');
 var EMPTY = 0;
 
@@ -1547,7 +1604,7 @@ module.exports = Grid;
 
 
 
-},{"ramda":1}],3:[function(require,module,exports){
+},{"ramda":1}],4:[function(require,module,exports){
 var solver = require('./solver.js');
 
 solver.setRenderer('html');
@@ -1569,7 +1626,7 @@ document.addEventListener('loadAnother', function(e) {
 });
 
 
-},{"./loadView.js":5,"./solveView.js":7,"./solver.js":8}],4:[function(require,module,exports){
+},{"./loadView.js":6,"./solveView.js":8,"./solver.js":9}],5:[function(require,module,exports){
 
 
 
@@ -1608,7 +1665,7 @@ module.exports = {
 
 
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 var R = require('ramda');
 var Grid = require('./Grid.js');
 var solver = require('./solver.js');
@@ -1677,7 +1734,7 @@ module.exports = document.getElementById('load');
 
 
 
-},{"./Grid.js":2,"./solver.js":8,"ramda":1}],6:[function(require,module,exports){
+},{"./Grid.js":3,"./solver.js":9,"ramda":1}],7:[function(require,module,exports){
 var R = require('ramda');
 
 
@@ -1701,10 +1758,15 @@ module.exports = {
 
 
 
-},{"ramda":1}],7:[function(require,module,exports){
+},{"ramda":1}],8:[function(require,module,exports){
 var solver = require('./solver.js');
 
 // attach to DOM
+var fwdCheck = document.getElementById('fwdcheck');
+fwdCheck.addEventListener('click', function(e) {
+  solver.enableForwardChecking(this.value === '1');
+});
+
 var radios = document.getElementsByName('strategy');
 var i = 0;
 while (i < radios.length) {
@@ -1719,6 +1781,7 @@ while (i < radios.length) {
 var solveBtn = document.getElementById('solveBtn');
 solveBtn.addEventListener('click', function() { 
   resetBtn.setAttribute('disabled', true);
+  fwdCheck.setAttribute('disabled', true);
   if (solver.solve()) {
     showOpCount() && showDuration(); 
   } else {
@@ -1734,6 +1797,7 @@ resetBtn.addEventListener('click', function() {
   showOpCount(' ');
   showDuration(' ');
   solveBtn.removeAttribute('disabled');
+  fwdCheck.removeAttribute('disabled');
 });
 
 var opCount = document.getElementById('opCount');
@@ -1759,9 +1823,10 @@ module.exports = document.getElementById('solve');
 
 
 
-},{"./solver.js":8}],8:[function(require,module,exports){
+},{"./solver.js":9}],9:[function(require,module,exports){
 var R = require('ramda');
 var Grid = require('./Grid.js');
+var DomainBoard = require('./DomainBoard.js');
 var strategy = require('./strategy.js');
 var renderers = require('./renderers.js');
 var instrument = require('./instrument.js').init();
@@ -1769,15 +1834,24 @@ var instrument = require('./instrument.js').init();
 var grid;
 var matrixClone;
 var render = renderers.console;
+var forwardCheck = false;
+var domainBoard;
 
 function reset() {
   instrument.reset();
   load(new Grid(matrixClone));
 }
 
+function useForwardChecking(bool) {
+  forwardCheck = bool;
+}
+
 function load(g) {
   grid = g;
   matrixClone = R.map(R.clone, grid.matrix);
+  if (forwardCheck) {
+    domainBoard = new DomainBoard(g);
+  }
   render(grid);
 }
 
@@ -1798,7 +1872,9 @@ function solve(g) {
   i = 0;
   while (i < domain.length) {
     g.update(cell, domain[i]); 
+    if (forwardCheck) {
 
+    }
     if (solve(g)) {               
       return true;
     }
@@ -1825,13 +1901,14 @@ module.exports = {
     }
   },
   solve: solve,
-  strategy: strategy
+  strategy: strategy,
+  useForwardChecking: useForwardChecking
 };   
 
 
  
 
-},{"./Grid.js":2,"./instrument.js":4,"./renderers.js":6,"./strategy.js":9,"ramda":1}],9:[function(require,module,exports){
+},{"./DomainBoard.js":2,"./Grid.js":3,"./instrument.js":5,"./renderers.js":7,"./strategy.js":10,"ramda":1}],10:[function(require,module,exports){
 var R = require('ramda');
 var Grid = require('./Grid.js');
 
@@ -1856,4 +1933,4 @@ module.exports = {
 };
 
 
-},{"./Grid.js":2,"ramda":1}]},{},[3])
+},{"./Grid.js":3,"ramda":1}]},{},[4])
