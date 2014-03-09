@@ -204,18 +204,33 @@
             return arr;
         };
 
-        // Internal version of `forEach`.  Possibly to be exposed later.
-        var each = _(function(fn, arr) {
-            for (var i = 0, len = arr.length; i < len; i++) {
-                fn(arr[i]);
+        // (Internal use only) The basic implementation of `each`.
+        var internalEach = _(function(useIdx, fn, list) {
+            var idx = -1, len = list.length;
+            while (++idx < len) {
+               if (useIdx) {
+                 fn(list[idx], idx, list);
+               } else {
+                 fn(list[idx]);
+               }
             }
+            // i can't bear not to return *something*
+            return list;
         });
+
+        // Internal version of `forEach`.  Possibly to be exposed later.
+        var each = R.each = internalEach(false);
+        each.idx = internalEach(true);
+        aliasFor("each").is("forEach");
 
         // Shallow copy of an array.
         var clone = R.clone = function(list) {
             return list.concat();
         };
 
+        R.cloneDeep = function(obj) {
+          return JSON.parse(JSON.stringify(obj));
+        };
 
         // Core Functions
         // --------------
@@ -533,16 +548,23 @@
             return foldl(fn, head(list), tail(list));
         });
 
-        // Similar to `foldl`/`reduce` except that it moves from right to left on the list.
-        var foldr = R.foldr =_(function(fn, acc, list) {
+        // (Internal use only) The basic implementation of foldr.
+        var internalFoldr= _(function(useIdx, fn, acc, list) {
+            if (list && list.length === Infinity) {
+                return list.foldr(fn, acc); // TODO: figure out useIdx
+            }
             var idx = list.length;
-            while(idx--) {
-                acc = fn(acc, list[idx]);
+            while (idx--) {
+                acc = (useIdx) ? fn(acc, list[idx], idx, list) : fn(acc, list[idx]);
             }
             return acc;
-
         });
+
+        // Returns a single item, by successively calling the function with the current element and the the next
+        // Similar to `foldl`/`reduce` except that it moves from right to left on the list.
+        var foldr = R.foldr = internalFoldr(false);
         aliasFor("foldr").is("reduceRight");
+        R.foldr.idx = internalFoldr(true);
 
 
         // Much like `foldr`/`reduceRight`, except that this takes as its starting value the last element in the list.
@@ -567,17 +589,39 @@
         });
 
 
-        // Returns a new list constructed by applying the function to every element of the list supplied.
-        var map = R.map = _(function(fn, list) {
+        // (Internal use only) The basic implementation of map.
+        var internalMap = _(function(useIdx, fn, list) {
             if (list && list.length === Infinity) {
                 return list.map(fn, list);
             }
             var idx = -1, len = list.length, result = new Array(len);
-            while (++idx < len) {
-                result[idx] = fn(list[idx]);
+            if (useIdx) {
+                while (++idx < len) {
+                    result[idx] = fn(list[idx], idx, list);
+                }
+            } else {
+                while (++idx < len) {
+                    result[idx] = fn(list[idx]);
+                }
             }
             return result;
         });
+        // Returns a new list constructed by applying the function to every element of the list supplied.
+        var map = R.map = internalMap(false);
+
+        // Like `map`, but passes additional parameters to the predicate function.  Parameters are
+        // `list item`, `index of item in list`, `entire list`.
+        //
+        // Example:
+        //
+        //     var squareEnds = function(x, idx, list) {
+        //         return (idx === 0 || idx === list.length - 1) ? x * x : x;
+        //     };
+        //
+        //     map(squareEnds, [8, 6, 7, 5, 3, 0, 9];
+        //     //=> [64, 6, 7, 5, 3, 0, 81]
+
+        map.idx = internalMap(true);
 
         // Reports the number of elements in the list
         R.size = function(arr) {return arr.length;};
@@ -1626,7 +1670,86 @@ document.addEventListener('loadAnother', function(e) {
 });
 
 
-},{"./loadView.js":6,"./solveView.js":8,"./solver.js":9}],5:[function(require,module,exports){
+},{"./loadView.js":7,"./solveView.js":9,"./solver.js":10}],5:[function(require,module,exports){
+
+module.exports = {
+  Easy: [
+    [
+      [0,0,0,2,6,0,7,0,1],
+      [6,8,0,0,7,0,0,9,0],
+      [1,9,0,0,0,4,5,0,0],
+      [8,2,0,1,0,0,0,4,0],
+      [0,0,4,6,0,2,9,0,0],
+      [0,5,0,0,0,3,0,2,8],
+      [0,0,9,3,0,0,0,7,4],
+      [0,4,0,0,5,0,0,3,6],
+      [7,0,3,0,1,8,0,0,0]
+    ],
+    [
+      [1,0,0,4,8,9,0,0,6],
+      [7,3,0,0,0,0,0,4,0],
+      [0,0,0,0,0,1,2,9,5],
+      [0,0,7,1,2,0,6,0,0],
+      [5,0,0,7,0,3,0,0,8],
+      [0,0,6,0,9,5,7,0,0],
+      [9,1,4,6,0,0,0,0,0],
+      [0,2,0,0,0,0,0,3,7],
+      [8,0,0,5,1,2,0,0,4]
+    ]
+  ],
+  Medium: [
+    [
+      [0,2,0,6,0,8,0,0,0],
+      [5,8,0,0,0,9,7,0,0],
+      [0,0,0,0,4,0,0,0,0],
+      [3,7,0,0,0,0,5,0,0],
+      [6,0,0,0,0,0,0,0,4],
+      [0,0,8,0,0,0,0,1,3],
+      [0,0,0,0,2,0,0,0,0],
+      [0,0,9,8,0,0,0,3,6],
+      [0,0,0,3,0,6,0,9,0]
+    ],
+  ],
+  Hard: [
+    [
+      [0,0,0,6,0,0,4,0,0],
+      [7,0,0,0,0,3,6,0,0],
+      [0,0,0,0,9,1,0,8,0],
+      [0,0,0,0,0,0,0,0,0],
+      [0,5,0,1,8,0,0,0,3],
+      [0,0,0,3,0,6,0,4,5],
+      [0,4,0,2,0,0,0,6,0],
+      [9,0,3,0,0,0,0,0,0],
+      [0,2,0,0,0,0,1,0,0]
+    ],
+    [
+      [2,0,0,3,0,0,0,0,0],
+      [8,0,4,0,6,2,0,0,3],
+      [0,1,3,8,0,0,2,0,0],
+      [0,0,0,0,2,0,3,9,0],
+      [5,0,7,0,0,0,6,2,1],
+      [0,3,2,0,0,6,0,0,0],
+      [0,2,0,0,9,1,4,0,0],
+      [6,0,1,2,5,0,8,0,9],
+      [0,0,0,0,0,1,0,0,2]
+    ]
+  ],
+  Brutal: [
+    [
+      [0,2,0,0,0,0,0,0,0],
+      [0,0,0,6,0,0,0,0,3],
+      [0,7,4,0,8,0,0,0,0],
+      [0,0,0,0,0,3,0,0,2],
+      [0,8,0,0,4,0,0,1,0],
+      [6,0,0,5,0,0,0,0,0],
+      [0,0,0,0,1,0,7,8,0],
+      [5,0,0,0,0,9,0,0,0],
+      [0,0,0,0,0,0,0,4,0]
+    ]
+  ]
+};
+
+},{}],6:[function(require,module,exports){
 
 
 
@@ -1665,10 +1788,11 @@ module.exports = {
 
 
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 var R = require('ramda');
 var Grid = require('./Grid.js');
 var solver = require('./solver.js');
+var gridData = require('./grids.js');
 
 // convert table values to js 2d-matrix
 function htmlToMatrix(tbl) {
@@ -1730,11 +1854,42 @@ loadBtn.addEventListener('click', function() {
   }
 });
 
+var gridList = document.getElementById('gridList');
+var frag = document.createDocumentFragment();
+R.each(function(key) {
+  var li = document.createElement('li');
+  var subtitle = document.createElement('span');
+  var puzzleList = document.createElement('ul');
+  
+  subtitle.textContent = key;
+  li.appendChild(subtitle);
+  li.appendChild(puzzleList);
+
+  // 'cuz i need the index and haven't impl'd each.idx yet
+  for (var i = 0; i < gridData[key].length; i++) {
+    var puzzLi = document.createElement('li');
+    var wrap = document.createElement('span');
+    wrap.className = 'puzzle';
+    wrap.textContent = key + ' puzzle ' + i;
+    wrap.setAttribute('data-puzzle', key + '_' + i);
+    wrap.addEventListener('click', function(e) {
+      var puzz = this.getAttribute('data-puzzle').split('_');
+      solver.load(new Grid(gridData[puzz[0]][puzz[1]]));
+      broadcast();
+    });
+    puzzLi.appendChild(wrap);
+    puzzleList.appendChild(puzzLi);
+  }
+  
+  frag.appendChild(li);
+}, R.keys(gridData));
+gridList.appendChild(frag);
+
 module.exports = document.getElementById('load');
 
 
 
-},{"./Grid.js":3,"./solver.js":9,"ramda":1}],7:[function(require,module,exports){
+},{"./Grid.js":3,"./grids.js":5,"./solver.js":10,"ramda":1}],8:[function(require,module,exports){
 var R = require('ramda');
 
 
@@ -1758,7 +1913,7 @@ module.exports = {
 
 
 
-},{"ramda":1}],8:[function(require,module,exports){
+},{"ramda":1}],9:[function(require,module,exports){
 var solver = require('./solver.js');
 
 // attach to DOM
@@ -1823,7 +1978,7 @@ module.exports = document.getElementById('solve');
 
 
 
-},{"./solver.js":9}],9:[function(require,module,exports){
+},{"./solver.js":10}],10:[function(require,module,exports){
 var R = require('ramda');
 var Grid = require('./Grid.js');
 var DomainBoard = require('./DomainBoard.js');
@@ -1908,7 +2063,7 @@ module.exports = {
 
  
 
-},{"./DomainBoard.js":2,"./Grid.js":3,"./instrument.js":5,"./renderers.js":7,"./strategy.js":10,"ramda":1}],10:[function(require,module,exports){
+},{"./DomainBoard.js":2,"./Grid.js":3,"./instrument.js":6,"./renderers.js":8,"./strategy.js":11,"ramda":1}],11:[function(require,module,exports){
 var R = require('ramda');
 var Grid = require('./Grid.js');
 

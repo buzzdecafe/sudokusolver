@@ -1,6 +1,7 @@
 var R = require('ramda');
 var Grid = require('./Grid.js');
 var solver = require('./solver.js');
+var gridData = require('./grids.js');
 
 // convert table values to js 2d-matrix
 function htmlToMatrix(tbl) {
@@ -61,6 +62,37 @@ loadBtn.addEventListener('click', function() {
     message.textContent = 'The grid is not valid';
   }
 });
+
+var gridList = document.getElementById('gridList');
+var frag = document.createDocumentFragment();
+R.each(function(key) {
+  var li = document.createElement('li');
+  var subtitle = document.createElement('span');
+  var puzzleList = document.createElement('ul');
+  
+  subtitle.textContent = key;
+  li.appendChild(subtitle);
+  li.appendChild(puzzleList);
+
+  // 'cuz i need the index and haven't impl'd each.idx yet
+  for (var i = 0; i < gridData[key].length; i++) {
+    var puzzLi = document.createElement('li');
+    var wrap = document.createElement('span');
+    wrap.className = 'puzzle';
+    wrap.textContent = key + ' puzzle ' + i;
+    wrap.setAttribute('data-puzzle', key + '_' + i);
+    wrap.addEventListener('click', function(e) {
+      var puzz = this.getAttribute('data-puzzle').split('_');
+      solver.load(new Grid(gridData[puzz[0]][puzz[1]]));
+      broadcast();
+    });
+    puzzLi.appendChild(wrap);
+    puzzleList.appendChild(puzzLi);
+  }
+  
+  frag.appendChild(li);
+}, R.keys(gridData));
+gridList.appendChild(frag);
 
 module.exports = document.getElementById('load');
 

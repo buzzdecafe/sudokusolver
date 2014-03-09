@@ -13,8 +13,8 @@
     "ramda": "https://api.github.com/repos/Ramda/ramda/tarball"
   },
   "devDependencies": {
-    "gulp-util": "~2.2.13",
     "gulp": "~3.5.0",
+    "gulp-util": "~2.2.14",
     "gulp-concat": "~2.1.7",
     "gulp-jshint": "~1.3.2",
     "gulp-clean": "~0.1.2",
