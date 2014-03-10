@@ -3,7 +3,7 @@ var solver = require('./solver.js');
 // attach to DOM
 var fwdCheck = document.getElementById('fwdcheck');
 fwdCheck.addEventListener('click', function(e) {
-  solver.enableForwardChecking(this.value === '1');
+  solver.useForwardChecking(this.value === '1');
 });
 
 var radios = document.getElementsByName('strategy');

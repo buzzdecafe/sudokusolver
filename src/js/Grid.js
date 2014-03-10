@@ -1,77 +1,96 @@
 var R = require('ramda');
 var EMPTY = 0;
 
-function Grid(m) {
+function isBound(dom) {
+  return dom.length === 1;
+}
+
+function isUnbound(dom) {
+  return dom.length > 1;
+}
+
+function Grid(m, useDomainBoard) {
   if (!(this instanceof Grid)) {
     return new Grid(m);
   }
-  this.matrix = m;
+  this.vars = this.initVars(m);
 };
 
 Grid.prototype = {
   constructor: Grid,
 
-  findEmptyCell: function() {
-    var cell = {};
-    cell.y = R.findIndex(function(r) { return R.contains(EMPTY, r); }, this.matrix);
-    if (cell.y !== null) {
-      cell.x = R.findIndex(function(c) { return c === EMPTY; }, this.matrix[cell.y]);
-    }
-    return (cell.y !== null && cell.x !== null) ? cell : false;
-  },
-
-  getAllEmptyCells: function() {
-    return R.foldl.idx(function(acc, row, yIndex) {
-      return acc.concat(R.foldl.idx(function(innerAcc, value, xIndex) {
-        if (value === 0) {
-          innerAcc.push({x: xIndex, y: yIndex});
+  initVars: function(mtx) {
+    return R.foldl.idx(function(acc, row, y) {
+      return acc.concat(R.map(function(n) {
+        var domain;
+        if (n === 0) {
+          domain = this.constrain(x, y);
+        } else {
+          domain = [n];
         }
-        return innerAcc; 
-      }, [], row));
-    }, [], this.matrix);
+        return new Cell(x, y, domain);
+      }, row));
+    }, [], mtx);
+
   },
 
-  getCellsByDomain: function() {
-    var grid = this;
-    return R.foldl(function(acc, cell) {
-      var key = grid.constrain(cell).length;
-      acc[key] = acc[key] || [];
-      acc[key].push(cell);
-      return acc;
-    }, {}, this.getAllEmptyCells());
+  findUnboundCell: function() {
+    return R.find(where({domain: isUnbound}), this.vars);
+  },
+
+  getAllUnboundCells: function() {
+    return R.filter(where({domain: isUnbound}), this.vars);
   },
 
   getMostConstrainedCells: function() {
-    var counts = this.getCellsByDomain();
-    return counts[Math.min.apply(Math, R.keys(counts))];
+    var unbound = this.getAllUnboundCells();
+    var minDom = R.min(function(a, b) { return a.domain.length > b.domain.length; }, unbound);
+    return R.filter(function(c) { return c.domain.length === minDom; }, unbound);
   },
 
-  constrain: function(cell) {
-    var rowWise = R.difference(R.range(1,10), this.matrix[cell.y]);
-    var colWise = R.difference(rowWise, this.colToArray(cell.x));
-    return R.difference(colWise, this.boxToArray(cell));
+  getRow: function(y) {
+    return R.filter(where({y: y}), this.vars);
   },
 
-  update: function(cell, value) {
-    this.matrix[cell.y][cell.x] = value;
+  getBoundByRow: function(y) {
+    return R.filter(where({
+      y: y,
+      domain: isBound
+    }), this.vars);
   },
 
-  colToArray: function(x) {
-    return R.pluck(x, this.matrix);
+  getColumn: function(x) {
+    return R.filter(where({x: x}), this.vars);
+  },
+
+  getBoundByColumn: function(x) {
+    return R.filter(where({
+      x: x,
+      domain: isBound
+    }), this.vars);
   },
 
   getBox: function(cell) {
-    return {
-      x: Math.floor(cell.x/3) * 3,
-      y: Math.floor(cell.y/3) * 3
+    var boxCoords = {
+      x: Math.floor(cell.x / 3),
+      y: Math.floor(cell.y / 3),
     };
+
+    return R.filter(where({
+      x: function(x) { return Math.floor(x/3) === boxCoords.x; },
+      y: function(y) { return Math.floor(y/3) === boxCoords.y; }
+    }), this.vars);
+
   },
 
-  boxToArray: function(cell) {
-    var box = this.getBox(cell); 
-    return R.foldl(function(acc, row) {  
-      return acc.concat(R.map(R.I, row.slice(box.x, box.x + 3)));
-    }, [], this.matrix.slice(box.y, box.y + 3));
+  getBoundByBox: function(cell) {
+    return R.filter(where({domain: isBound}), this.getBox(cell));
+  },
+
+  constrain: function(cell) {
+    var rowWise = R.difference(R.range(1,10), this.getRow(cell.y));
+    var colWise = R.difference(rowWise, this.getColumn(cell.x));
+    return R.difference(colWise, this.getBox(cell));
   },
 
   isValid: function() {
@@ -94,10 +113,11 @@ Grid.prototype = {
   },
 
   clone: function() {
-    return new Grid(R.map(R.clone, this.matrix));
+    return new Grid(R.map(R.clone, this.matrix), !!this.domainBoard);
   }
 
 };
+
 
 module.exports = Grid;
 
