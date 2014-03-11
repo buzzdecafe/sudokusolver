@@ -1,4 +1,5 @@
 var R = require('ramda');
+var Cell = require('./Cell.js');
 var EMPTY = 0;
 
 function isBound(dom) {
@@ -9,22 +10,23 @@ function isUnbound(dom) {
   return dom.length > 1;
 }
 
-function Grid(m, useDomainBoard) {
+function Grid(m) {
   if (!(this instanceof Grid)) {
     return new Grid(m);
   }
-  this.vars = this.initVars(m);
+  this.cells = this.initCells(m);
 };
 
 Grid.prototype = {
   constructor: Grid,
 
-  initVars: function(mtx) {
-    return R.foldl.idx(function(acc, row, y) {
-      return acc.concat(R.map(function(n) {
+  initCells: function(mtx) {
+    var grid = this;
+    this.cells = R.foldl.idx(function(acc, row, y) {
+      return acc.concat(R.map.idx(function(n, x) {
         var domain;
         if (n === 0) {
-          domain = this.constrain(x, y);
+          domain = R.range(1,10);
         } else {
           domain = [n];
         }
@@ -32,14 +34,19 @@ Grid.prototype = {
       }, row));
     }, [], mtx);
 
+//    R.each(function(cell) {
+//      cell.domain = grid.constrain(cell); 
+//    }, this.getAllUnboundCells());
+
+    return this.cells;
   },
 
   findUnboundCell: function() {
-    return R.find(where({domain: isUnbound}), this.vars);
+    return R.find(R.where({domain: isUnbound}), this.cells);
   },
 
   getAllUnboundCells: function() {
-    return R.filter(where({domain: isUnbound}), this.vars);
+    return R.filter(R.where({domain: isUnbound}), this.cells);
   },
 
   getMostConstrainedCells: function() {
@@ -49,48 +56,55 @@ Grid.prototype = {
   },
 
   getRow: function(y) {
-    return R.filter(where({y: y}), this.vars);
+    return R.filter(R.where({y: y}), this.cells);
   },
 
   getBoundByRow: function(y) {
-    return R.filter(where({
+    return R.filter(R.where({
       y: y,
       domain: isBound
-    }), this.vars);
+    }), this.cells);
   },
 
   getColumn: function(x) {
-    return R.filter(where({x: x}), this.vars);
+    return R.filter(R.where({x: x}), this.cells);
   },
 
   getBoundByColumn: function(x) {
-    return R.filter(where({
+    return R.filter(R.where({
       x: x,
       domain: isBound
-    }), this.vars);
+    }), this.cells);
   },
 
   getBox: function(cell) {
     var boxCoords = {
-      x: Math.floor(cell.x / 3),
-      y: Math.floor(cell.y / 3),
+      x: Math.floor(cell.x / 3) * 3,
+      y: Math.floor(cell.y / 3) * 3,
     };
 
-    return R.filter(where({
-      x: function(x) { return Math.floor(x/3) === boxCoords.x; },
-      y: function(y) { return Math.floor(y/3) === boxCoords.y; }
-    }), this.vars);
+    return R.filter(R.where({
+      x: function(x) { return Math.floor(x/3) * 3 === boxCoords.x; },
+      y: function(y) { return Math.floor(y/3) * 3 === boxCoords.y; }
+    }), this.cells);
 
   },
 
   getBoundByBox: function(cell) {
-    return R.filter(where({domain: isBound}), this.getBox(cell));
+    return R.filter(R.where({domain: isBound}), this.getBox(cell));
   },
 
   constrain: function(cell) {
-    var rowWise = R.difference(R.range(1,10), this.getRow(cell.y));
-    var colWise = R.difference(rowWise, this.getColumn(cell.x));
-    return R.difference(colWise, this.getBox(cell));
+    function boundValue(acc, cell) {
+      return acc.concat(cell.domain); 
+    }
+    var rowBound = R.foldl(boundValue, [], this.getBoundByRow(cell.y));
+    var colBound = R.foldl(boundValue, [], this.getBoundByColumn(cell.x));
+    var boxBound = R.foldl(boundValue, [], this.getBoundByBox(cell.x));
+
+    var rowWise = R.difference(cell.domain, rowBound);
+    var colWise = R.difference(rowWise, colBound);
+    return R.difference(colWise, boxBound);
   },
 
   isValid: function() {

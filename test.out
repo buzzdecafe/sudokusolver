@@ -1,0 +1,180 @@
+[gulp] Using file /home/mike/dev/sudokusolver/gulpfile.js
+[gulp] Working directory changed to /home/mike/dev/sudokusolver
+[gulp] Running 'test'...
+[gulp] Finished 'test' in 12 ms
+[32m.[0m[32m.[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m
+
+Failures:
+
+  1) Grid :: Grid methods :: findUnboundCell :: returns the first empty cell it finds
+   Message:
+     [31mReferenceError: where is not defined[0m
+   Stacktrace:
+     ReferenceError: where is not defined
+    at Grid.getBox (/home/mike/dev/sudokusolver/src/js/Grid.js:86:21)
+    at Grid.constrain (/home/mike/dev/sudokusolver/src/js/Grid.js:100:39)
+    at /home/mike/dev/sudokusolver/src/js/Grid.js:38:12
+    at Object.<anonymous> (/home/mike/dev/sudokusolver/node_modules/ramda/ramda.js:213:18)
+    at Object.<anonymous> (/home/mike/dev/sudokusolver/node_modules/ramda/ramda.js:68:35)
+    at Object.eval (eval at <anonymous> (/home/mike/dev/sudokusolver/node_modules/ramda/ramda.js:134:24), <anonymous>:3:21)
+    at Grid.initCells (/home/mike/dev/sudokusolver/src/js/Grid.js:37:7)
+    at new Grid (/home/mike/dev/sudokusolver/src/js/Grid.js:17:21)
+    at null.<anonymous> (/home/mike/dev/sudokusolver/spec/grid.test.js:22:14)
+
+  2) Grid :: Grid methods :: findUnboundCell :: returns the first empty cell it finds
+   Message:
+     [31mTypeError: Cannot call method 'findUnboundCell' of undefined[0m
+   Stacktrace:
+     TypeError: Cannot call method 'findUnboundCell' of undefined
+    at null.<anonymous> (/home/mike/dev/sudokusolver/spec/grid.test.js:27:25)
+
+  3) Grid :: Grid methods :: getAllUnboundCells :: returns an array of coordinates of all the empty cells in the grid
+   Message:
+     [31mReferenceError: where is not defined[0m
+   Stacktrace:
+     ReferenceError: where is not defined
+    at Grid.getBox (/home/mike/dev/sudokusolver/src/js/Grid.js:86:21)
+    at Grid.constrain (/home/mike/dev/sudokusolver/src/js/Grid.js:100:39)
+    at /home/mike/dev/sudokusolver/src/js/Grid.js:38:12
+    at Object.<anonymous> (/home/mike/dev/sudokusolver/node_modules/ramda/ramda.js:213:18)
+    at Object.<anonymous> (/home/mike/dev/sudokusolver/node_modules/ramda/ramda.js:68:35)
+    at Object.eval (eval at <anonymous> (/home/mike/dev/sudokusolver/node_modules/ramda/ramda.js:134:24), <anonymous>:3:21)
+    at Grid.initCells (/home/mike/dev/sudokusolver/src/js/Grid.js:37:7)
+    at new Grid (/home/mike/dev/sudokusolver/src/js/Grid.js:17:21)
+    at null.<anonymous> (/home/mike/dev/sudokusolver/spec/grid.test.js:22:14)
+
+  4) Grid :: Grid methods :: getAllUnboundCells :: returns an array of coordinates of all the empty cells in the grid
+   Message:
+     [31mTypeError: Cannot call method 'getAllUnboundCells' of undefined[0m
+   Stacktrace:
+     TypeError: Cannot call method 'getAllUnboundCells' of undefined
+    at null.<anonymous> (/home/mike/dev/sudokusolver/spec/grid.test.js:35:28)
+
+  5) Grid :: Grid methods :: getMostConstrainedCells :: returns a list of the cells with the smallest domain
+   Message:
+     [31mReferenceError: where is not defined[0m
+   Stacktrace:
+     ReferenceError: where is not defined
+    at Grid.getBox (/home/mike/dev/sudokusolver/src/js/Grid.js:86:21)
+    at Grid.constrain (/home/mike/dev/sudokusolver/src/js/Grid.js:100:39)
+    at /home/mike/dev/sudokusolver/src/js/Grid.js:38:12
+    at Object.<anonymous> (/home/mike/dev/sudokusolver/node_modules/ramda/ramda.js:213:18)
+    at Object.<anonymous> (/home/mike/dev/sudokusolver/node_modules/ramda/ramda.js:68:35)
+    at Object.eval (eval at <anonymous> (/home/mike/dev/sudokusolver/node_modules/ramda/ramda.js:134:24), <anonymous>:3:21)
+    at Grid.initCells (/home/mike/dev/sudokusolver/src/js/Grid.js:37:7)
+    at new Grid (/home/mike/dev/sudokusolver/src/js/Grid.js:17:21)
+    at null.<anonymous> (/home/mike/dev/sudokusolver/spec/grid.test.js:22:14)
+
+  6) Grid :: Grid methods :: getMostConstrainedCells :: returns a list of the cells with the smallest domain
+   Message:
+     [31mTypeError: Cannot call method 'getMostConstrainedCells' of undefined[0m
+   Stacktrace:
+     TypeError: Cannot call method 'getMostConstrainedCells' of undefined
+    at null.<anonymous> (/home/mike/dev/sudokusolver/spec/grid.test.js:52:47)
+
+  7) Grid :: Grid methods :: constrain :: reduces the domain of a given cell
+   Message:
+     [31mReferenceError: where is not defined[0m
+   Stacktrace:
+     ReferenceError: where is not defined
+    at Grid.getBox (/home/mike/dev/sudokusolver/src/js/Grid.js:86:21)
+    at Grid.constrain (/home/mike/dev/sudokusolver/src/js/Grid.js:100:39)
+    at /home/mike/dev/sudokusolver/src/js/Grid.js:38:12
+    at Object.<anonymous> (/home/mike/dev/sudokusolver/node_modules/ramda/ramda.js:213:18)
+    at Object.<anonymous> (/home/mike/dev/sudokusolver/node_modules/ramda/ramda.js:68:35)
+    at Object.eval (eval at <anonymous> (/home/mike/dev/sudokusolver/node_modules/ramda/ramda.js:134:24), <anonymous>:3:21)
+    at Grid.initCells (/home/mike/dev/sudokusolver/src/js/Grid.js:37:7)
+    at new Grid (/home/mike/dev/sudokusolver/src/js/Grid.js:17:21)
+    at null.<anonymous> (/home/mike/dev/sudokusolver/spec/grid.test.js:22:14)
+
+  8) Grid :: Grid methods :: constrain :: reduces the domain of a given cell
+   Message:
+     [31mTypeError: Cannot call method 'constrain' of undefined[0m
+   Stacktrace:
+     TypeError: Cannot call method 'constrain' of undefined
+    at null.<anonymous> (/home/mike/dev/sudokusolver/spec/grid.test.js:60:21)
+
+  9) Grid :: Grid methods :: getRow :: undefined
+   Message:
+     [31mReferenceError: where is not defined[0m
+   Stacktrace:
+     ReferenceError: where is not defined
+    at Grid.getBox (/home/mike/dev/sudokusolver/src/js/Grid.js:86:21)
+    at Grid.constrain (/home/mike/dev/sudokusolver/src/js/Grid.js:100:39)
+    at /home/mike/dev/sudokusolver/src/js/Grid.js:38:12
+    at Object.<anonymous> (/home/mike/dev/sudokusolver/node_modules/ramda/ramda.js:213:18)
+    at Object.<anonymous> (/home/mike/dev/sudokusolver/node_modules/ramda/ramda.js:68:35)
+    at Object.eval (eval at <anonymous> (/home/mike/dev/sudokusolver/node_modules/ramda/ramda.js:134:24), <anonymous>:3:21)
+    at Grid.initCells (/home/mike/dev/sudokusolver/src/js/Grid.js:37:7)
+    at new Grid (/home/mike/dev/sudokusolver/src/js/Grid.js:17:21)
+    at null.<anonymous> (/home/mike/dev/sudokusolver/spec/grid.test.js:22:14)
+
+  10) Grid :: Grid methods :: getColumn :: returns the array of values for a given column index
+   Message:
+     [31mReferenceError: where is not defined[0m
+   Stacktrace:
+     ReferenceError: where is not defined
+    at Grid.getBox (/home/mike/dev/sudokusolver/src/js/Grid.js:86:21)
+    at Grid.constrain (/home/mike/dev/sudokusolver/src/js/Grid.js:100:39)
+    at /home/mike/dev/sudokusolver/src/js/Grid.js:38:12
+    at Object.<anonymous> (/home/mike/dev/sudokusolver/node_modules/ramda/ramda.js:213:18)
+    at Object.<anonymous> (/home/mike/dev/sudokusolver/node_modules/ramda/ramda.js:68:35)
+    at Object.eval (eval at <anonymous> (/home/mike/dev/sudokusolver/node_modules/ramda/ramda.js:134:24), <anonymous>:3:21)
+    at Grid.initCells (/home/mike/dev/sudokusolver/src/js/Grid.js:37:7)
+    at new Grid (/home/mike/dev/sudokusolver/src/js/Grid.js:17:21)
+    at null.<anonymous> (/home/mike/dev/sudokusolver/spec/grid.test.js:22:14)
+
+  11) Grid :: Grid methods :: getColumn :: returns the array of values for a given column index
+   Message:
+     [31mTypeError: Cannot call method 'colToArray' of undefined[0m
+   Stacktrace:
+     TypeError: Cannot call method 'colToArray' of undefined
+    at null.<anonymous> (/home/mike/dev/sudokusolver/spec/grid.test.js:72:21)
+
+  12) Grid :: Grid methods :: getBox :: returns the (x,y) coordinates of the given cell's containing box
+   Message:
+     [31mReferenceError: where is not defined[0m
+   Stacktrace:
+     ReferenceError: where is not defined
+    at Grid.getBox (/home/mike/dev/sudokusolver/src/js/Grid.js:86:21)
+    at Grid.constrain (/home/mike/dev/sudokusolver/src/js/Grid.js:100:39)
+    at /home/mike/dev/sudokusolver/src/js/Grid.js:38:12
+    at Object.<anonymous> (/home/mike/dev/sudokusolver/node_modules/ramda/ramda.js:213:18)
+    at Object.<anonymous> (/home/mike/dev/sudokusolver/node_modules/ramda/ramda.js:68:35)
+    at Object.eval (eval at <anonymous> (/home/mike/dev/sudokusolver/node_modules/ramda/ramda.js:134:24), <anonymous>:3:21)
+    at Grid.initCells (/home/mike/dev/sudokusolver/src/js/Grid.js:37:7)
+    at new Grid (/home/mike/dev/sudokusolver/src/js/Grid.js:17:21)
+    at null.<anonymous> (/home/mike/dev/sudokusolver/spec/grid.test.js:22:14)
+
+  13) Grid :: Grid methods :: getBox :: returns the (x,y) coordinates of the given cell's containing box
+   Message:
+     [31mTypeError: Cannot call method 'getBox' of undefined[0m
+   Stacktrace:
+     TypeError: Cannot call method 'getBox' of undefined
+    at null.<anonymous> (/home/mike/dev/sudokusolver/spec/grid.test.js:86:21)
+
+  14) Grid :: Grid methods :: isValid :: detects if a grid has any duplicate values
+   Message:
+     [31mReferenceError: where is not defined[0m
+   Stacktrace:
+     ReferenceError: where is not defined
+    at Grid.getBox (/home/mike/dev/sudokusolver/src/js/Grid.js:86:21)
+    at Grid.constrain (/home/mike/dev/sudokusolver/src/js/Grid.js:100:39)
+    at /home/mike/dev/sudokusolver/src/js/Grid.js:38:12
+    at Object.<anonymous> (/home/mike/dev/sudokusolver/node_modules/ramda/ramda.js:213:18)
+    at Object.<anonymous> (/home/mike/dev/sudokusolver/node_modules/ramda/ramda.js:68:35)
+    at Object.eval (eval at <anonymous> (/home/mike/dev/sudokusolver/node_modules/ramda/ramda.js:134:24), <anonymous>:3:21)
+    at Grid.initCells (/home/mike/dev/sudokusolver/src/js/Grid.js:37:7)
+    at new Grid (/home/mike/dev/sudokusolver/src/js/Grid.js:17:21)
+    at null.<anonymous> (/home/mike/dev/sudokusolver/spec/grid.test.js:22:14)
+
+  15) Grid :: Grid methods :: isValid :: detects if a grid has any duplicate values
+   Message:
+     [31mTypeError: Cannot call method 'isValid' of undefined[0m
+   Stacktrace:
+     TypeError: Cannot call method 'isValid' of undefined
+    at null.<anonymous> (/home/mike/dev/sudokusolver/spec/grid.test.js:97:21)
+
+Finished in 1.026 seconds
+[31m16 tests, 31 assertions, 15 failures
+[0m
