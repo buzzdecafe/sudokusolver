@@ -108,14 +108,8 @@ Grid.prototype = {
   isValid: function() {
     
     var grid = this;
-    var validRows, validCols, validBoxes;
     var range = R.range(0,9);
 
-    function validate(arr) {
-      var nums = R.filter(function(n) { return n !== 0; }, arr);
-      return R.uniq(nums).length === nums.length;
-    }
-    
     // assert no empty domains && all bound cells have unique values
     function validCellArray(cells) {
       return R.all(function(c) { return c.isValid(); }, cells) &&
