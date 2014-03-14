@@ -33,7 +33,6 @@ function Grid(m) {
     c.domain = (c.domain.length === 1) ? c.domain : grid.constrain(c);
   }, this.cells);
   
-  
 };
 
 Grid.prototype = {
@@ -92,6 +91,27 @@ Grid.prototype = {
     return R.filter(R.where({domain: isBound}), this.getBox(cell));
   },
 
+  getUnboundRelatives: function(cell) {
+    return R.filter(function(c) { return c.x !== cell.x && c.isUnbound(); }, this.getRow(cell.y)).concat(
+      R.filter(function(c) { return c.y !== cell.y && c.isUnbound(); }, this.getColumn(cell.x))).concat(
+      R.filter(function(c) { return c.x !== cell.x && c.y !== cell.y && c.isUnbound(); }, this.getBox(cell)));
+  },
+
+  forwardCheck: function(cell) {
+    var value = R.car(cell.domain);
+    // get row, col, box
+    var related = this.getUnboundRelatives(cell);
+
+    // iterate over cells and remove cell value from domains
+    var updated = R.each(function(c) { c.remove(value); }, related);
+
+    // if any domain.length becomes one, forwardCheck that cell
+    R.all(this.forwardCheck, R.filter(R.where({domain: isBound}), updated));
+
+    // if any domain.length becomes zero, backtrack
+    return R.all(function(c) { return c.isValid(); }, updated);
+  },
+  
   constrain: function(cell) {
     function boundValue(acc, cell) {
       return acc.concat(cell.domain); 

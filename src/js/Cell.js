@@ -11,6 +11,11 @@ Cell.prototype.constrain = function(arr) {
   return this;
 };
 
+Cell.prototype.remove = function(n) {
+  this.domain.splice(this.domain.indexOf(n), 1);
+  return this;
+};
+
 Cell.prototype.isBound = function() {
   return this.domain.length === 1;
 };

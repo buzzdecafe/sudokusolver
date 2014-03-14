@@ -1,6 +1,5 @@
 var R = require('ramda');
 var Grid = require('./Grid.js');
-var DomainBoard = require('./DomainBoard.js');
 var strategy = require('./strategy.js');
 var renderers = require('./renderers.js');
 var instrument = require('./instrument.js').init();
@@ -23,9 +22,6 @@ function useForwardChecking(bool) {
 function load(g) {
   grid = g;
   matrixClone = R.map(R.clone, grid.matrix);
-  if (forwardCheck) {
-    domainBoard = new DomainBoard(g);
-  }
   render(grid);
 }
 
@@ -46,9 +42,6 @@ function solve(g) {
   i = 0;
   while (i < domain.length) {
     g.update(cell, domain[i]); 
-    if (forwardCheck) {
-
-    }
     if (solve(g)) {               
       return true;
     }

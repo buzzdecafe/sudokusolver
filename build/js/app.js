@@ -261,7 +261,7 @@
             if (arr.length === Infinity) {
                 return arr.tail();
             }
-            return (arr.length > 1) ? slice(arr, 1) : null;
+            return (arr.length > 1) ? slice(arr, 1) : [];
         };
         aliasFor("tail").is("cdr");
 
@@ -815,6 +815,10 @@
             return foldr(function(acc, x) { return (contains(x, acc)) ? acc : prepend(x, acc); }, EMPTY, list);
         };
 
+        R.isSet = function(list) {
+            return uniq(list).length === list.length;
+        };
+
         // Returns a new list containing only one copy of each element in the original list, based upon the value
         // returned by applying the supplied predicate to two list elements.   Equality is strict here,  meaning
         // reference equality for objects and non-coercing equality for primitives.
@@ -1071,6 +1075,12 @@
             return partialCopy(function(key) {return !contains(key, names);}, obj);
         });
 
+        // Returns a new object that mixes in the own properties of two objects.
+        R.mixin = _(function(a, b) {
+          var mixed = pickAll(R.keys(a), a);
+          each(function(key) { mixed[key] = b[key]; }, R.keys(b));
+          return mixed;
+        });
 
         // Reports whether two functions have the same value for the specified property.  Useful as a curried predicate.
         R.eqProps = _(function(prop, obj1, obj2) {return obj1[prop] === obj2[prop];});
@@ -1280,7 +1290,7 @@
         // Determines the largest of a list of numbers (or elements that can be cast to numbers) using the supplied comparator
         R.maxWith = _(function(comparator, list) {
             if (!isArray(list) || !list.length) {
-                return undef;
+                return null;
             }
             var idx = 0, max = list[idx];
             while (++idx < list.length) {
@@ -1295,7 +1305,7 @@
         // Determines the smallest of a list of numbers (or elements that can be cast to numbers) using the supplied comparator
         R.minWith = _(function(comparator, list) {
             if (!isArray(list) || !list.length) {
-                return undef;
+                return null;
             }
             var idx = 0, max = list[idx];
             while (++idx < list.length) {
@@ -1486,156 +1496,188 @@
 }));
 
 },{}],2:[function(require,module,exports){
-var Grid = require('./Grid.js');
 var R = require('ramda');
 
-function DomainBoard(grid) {
-  this.matrix = R.map.idx(function(row, yIndex) {
-    return R.map.idx(function(cell, xindex) {
-      return cell ? [cell] : grid.constrain({x: xIndex, y: yIndex});
-    }, row);
-  }, grid.matrix);
-  this.history = [this.store()];
+function Cell(x, y, domain) {
+  this.x = x;
+  this.y = y;
+  this.domain = domain;
+}
+
+Cell.prototype.constrain = function(arr) {
+  this.domain = R.difference(this.domain, arr);
+  return this;
 };
 
-DomainBoard.prototype = Grid.prototype;
-
-DomainBoard.prototype.constructor = DomainBoard;
-
-DomainBoard.prototype.updateDomain = function(value, arr) {
-  return R.map(function(dom) {
-    var i = dom.indexOf(value);
-    return (i > -1) ? dom.splice(i, 1) : dom;
-  }, arr);
+Cell.prototype.remove = function(n) {
+  this.domain.splice(this.domain.indexOf(n), 1);
+  return this;
 };
 
-DomainBoard.prototype.propagate = function(cell, value) {
-  var row = this.matrix[cell.y];
-  var col = this.colToArray(cell.x);
-  var box = this.boxToArray(cell);
-  var ok = false;
-  var hasDomain = function(a) { return a.length > 0; }; 
-  // push onto the stack
-  this.store();
-  
-  ok = all(hasDomain, this.updateDomain(value, row)) &&
-       all(hasDomain, this.updateDomain(value, col)) &&
-       all(hasDomain, this.updateDomain(value, box));
-
-  // if any empty domains, revert and return false;
-  if (ok) {
-    return true;
-  } else {
-    this.revert();
-    return false;
-  }
+Cell.prototype.isBound = function() {
+  return this.domain.length === 1;
 };
 
-DomainBoard.prototype.store = function() {
-  return JSON.stringify(this.matrix);
+Cell.prototype.isUnbound = function() {
+  return this.domain.length > 1;
 };
 
-DomainBoard.prototype.revert = function() {
-  this.matrix = JSON.parse(this.history.pop()); 
+Cell.prototype.isValid = function() {
+  return this.domain.length >= 1;
 };
 
-module.exports = DomainBoard;
+Cell.prototype.isInvalid = function() {
+  return this.domain.length < 1;
+};
+
+module.exports = Cell;
 
 
-},{"./Grid.js":3,"ramda":1}],3:[function(require,module,exports){
+
+},{"ramda":1}],3:[function(require,module,exports){
 var R = require('ramda');
+var Cell = require('./Cell.js');
 var EMPTY = 0;
+
+function isBound(dom) {
+  return dom.length === 1;
+}
+
+function isUnbound(dom) {
+  return dom.length > 1;
+}
 
 function Grid(m) {
   if (!(this instanceof Grid)) {
     return new Grid(m);
   }
+  var grid = this;
+  
   this.matrix = m;
+  this.cells = R.foldl.idx(function(acc, row, y) {
+    return acc.concat(R.map.idx(function(n, x) {
+      var domain;
+      if (n === 0) {
+        domain = R.range(1,10);
+      } else {
+        domain = [n];
+      }
+      return new Cell(x, y, domain);
+    }, row));
+  }, [], m); 
+  
+  R.each(function(c) {
+    c.domain = (c.domain.length === 1) ? c.domain : grid.constrain(c);
+  }, this.cells);
+  
 };
 
 Grid.prototype = {
   constructor: Grid,
 
-  findEmptyCell: function() {
-    var cell = {};
-    cell.y = R.findIndex(function(r) { return R.contains(EMPTY, r); }, this.matrix);
-    if (cell.y !== null) {
-      cell.x = R.findIndex(function(c) { return c === EMPTY; }, this.matrix[cell.y]);
-    }
-    return (cell.y !== null && cell.x !== null) ? cell : false;
+  getFirstUnboundCell: function() {
+    return R.find(R.where({domain: isUnbound}), this.cells);
   },
 
-  getAllEmptyCells: function() {
-    return R.foldl.idx(function(acc, row, yIndex) {
-      return acc.concat(R.foldl.idx(function(innerAcc, value, xIndex) {
-        if (value === 0) {
-          innerAcc.push({x: xIndex, y: yIndex});
-        }
-        return innerAcc; 
-      }, [], row));
-    }, [], this.matrix);
-  },
-
-  getCellsByDomain: function() {
-    var grid = this;
-    return R.foldl(function(acc, cell) {
-      var key = grid.constrain(cell).length;
-      acc[key] = acc[key] || [];
-      acc[key].push(cell);
-      return acc;
-    }, {}, this.getAllEmptyCells());
+  getAllUnboundCells: function() {
+    return R.filter(R.where({domain: isUnbound}), this.cells);
   },
 
   getMostConstrainedCells: function() {
-    var counts = this.getCellsByDomain();
-    return counts[Math.min.apply(Math, R.keys(counts))];
+    var unbound = this.getAllUnboundCells();
+    var minDom = R.minWith(function(a, b) { return a.domain.length - b.domain.length; }, unbound);
+    return (minDom && minDom.domain) ? R.filter(function(c) { return c.domain.length === minDom.domain.length; }, unbound) : [];
   },
 
-  constrain: function(cell) {
-    var rowWise = R.difference(R.range(1,10), this.matrix[cell.y]);
-    var colWise = R.difference(rowWise, this.colToArray(cell.x));
-    return R.difference(colWise, this.boxToArray(cell));
+  getRow: function(y) {
+    return R.filter(R.where({y: y}), this.cells);
   },
 
-  update: function(cell, value) {
-    this.matrix[cell.y][cell.x] = value;
+  getBoundByRow: function(y) {
+    return R.filter(R.where({
+      y: y,
+      domain: isBound
+    }), this.cells);
   },
 
-  colToArray: function(x) {
-    return R.pluck(x, this.matrix);
+  getColumn: function(x) {
+    return R.filter(R.where({x: x}), this.cells);
+  },
+
+  getBoundByColumn: function(x) {
+    return R.filter(R.where({
+      x: x,
+      domain: isBound
+    }), this.cells);
   },
 
   getBox: function(cell) {
-    return {
-      x: Math.floor(cell.x/3) * 3,
-      y: Math.floor(cell.y/3) * 3
+    var boxCoords = {
+      x: Math.floor(cell.x / 3) * 3,
+      y: Math.floor(cell.y / 3) * 3,
     };
+
+    return R.filter(R.where({
+      x: function(x) { return Math.floor(x/3) * 3 === boxCoords.x; },
+      y: function(y) { return Math.floor(y/3) * 3 === boxCoords.y; }
+    }), this.cells);
+
   },
 
-  boxToArray: function(cell) {
-    var box = this.getBox(cell); 
-    return R.foldl(function(acc, row) {  
-      return acc.concat(R.map(R.I, row.slice(box.x, box.x + 3)));
-    }, [], this.matrix.slice(box.y, box.y + 3));
+  getBoundByBox: function(cell) {
+    return R.filter(R.where({domain: isBound}), this.getBox(cell));
+  },
+
+  getUnboundRelatives: function(cell) {
+    return R.filter(function(c) { return c.x !== cell.x && c.isUnbound(); }, this.getRow(cell.y)).concat(
+      R.filter(function(c) { return c.y !== cell.y && c.isUnbound(); }, this.getColumn(cell.x))).concat(
+      R.filter(function(c) { return c.x !== cell.x && c.y !== cell.y && c.isUnbound(); }, this.getBox(cell)));
+  },
+
+  forwardCheck: function(cell) {
+    var value = R.car(cell.domain);
+    // get row, col, box
+    var related = this.getUnboundRelatives(cell);
+
+    // iterate over cells and remove cell value from domains
+    var updated = R.each(function(c) { c.remove(value); }, related);
+
+    // if any domain.length becomes one, forwardCheck that cell
+    R.all(this.forwardCheck, R.filter(R.where({domain: isBound}), updated));
+
+    // if any domain.length becomes zero, backtrack
+    return R.all(function(c) { return c.isValid(); }, updated);
+  },
+  
+  constrain: function(cell) {
+    function boundValue(acc, cell) {
+      return acc.concat(cell.domain); 
+    }
+    var rowBound = R.foldl(boundValue, [], this.getBoundByRow(cell.y));
+    var colBound = R.foldl(boundValue, [], this.getBoundByColumn(cell.x));
+    var boxBound = R.foldl(boundValue, [], this.getBoundByBox(cell));
+    
+    cell.constrain(rowBound).constrain(colBound).constrain(boxBound);
+    
+    return cell.domain;
   },
 
   isValid: function() {
     
-    function validate(arr) {
-      var nums = R.filter(function(n) { return n !== 0; }, arr);
-      return R.uniq(nums).length === nums.length;
+    var grid = this;
+    var range = R.range(0,9);
+
+    // assert no empty domains && all bound cells have unique values
+    function validCellArray(cells) {
+      return R.all(function(c) { return c.isValid(); }, cells) &&
+             R.isSet(R.map(function(c) { return R.car(c.domain); }, R.filter(R.where({domain: isBound}), cells)));
     }
     
-    var rows = this.matrix;
-    var cols = R.map(this.colToArray.bind(this), R.range(0, 9));
-    var boxes = R.map(this.boxToArray.bind(this), R.foldl(function(acc, val) {
-        var cell = {
-          x: Math.floor(val/3) * 3,
-          y: ((val % 3) * 3)
-        };
-        return acc.concat(cell);
-      }, [], R.range(0, 9)));
-    return R.all(validate, rows) && R.all(validate, cols) && R.all(validate, boxes);
+    // assert all domains are sets
+    
+    return R.all(validCellArray, R.map(function(n) { return grid.getRow(n); }, range)) &&
+           R.all(validCellArray, R.map(function(n) { return grid.getColumn(n); }, range)) &&
+           R.all(validCellArray, R.map(function(n) { return grid.getBox({x: Math.floor(n/3) * 3, y: (n % 3) * 3 }); }, range));      
   },
 
   clone: function() {
@@ -1644,11 +1686,12 @@ Grid.prototype = {
 
 };
 
+
 module.exports = Grid;
 
 
 
-},{"ramda":1}],4:[function(require,module,exports){
+},{"./Cell.js":2,"ramda":1}],4:[function(require,module,exports){
 var solver = require('./solver.js');
 
 solver.setRenderer('html');
@@ -1981,7 +2024,6 @@ module.exports = document.getElementById('solve');
 },{"./solver.js":10}],10:[function(require,module,exports){
 var R = require('ramda');
 var Grid = require('./Grid.js');
-var DomainBoard = require('./DomainBoard.js');
 var strategy = require('./strategy.js');
 var renderers = require('./renderers.js');
 var instrument = require('./instrument.js').init();
@@ -2004,9 +2046,6 @@ function useForwardChecking(bool) {
 function load(g) {
   grid = g;
   matrixClone = R.map(R.clone, grid.matrix);
-  if (forwardCheck) {
-    domainBoard = new DomainBoard(g);
-  }
   render(grid);
 }
 
@@ -2027,9 +2066,6 @@ function solve(g) {
   i = 0;
   while (i < domain.length) {
     g.update(cell, domain[i]); 
-    if (forwardCheck) {
-
-    }
     if (solve(g)) {               
       return true;
     }
@@ -2063,7 +2099,7 @@ module.exports = {
 
  
 
-},{"./DomainBoard.js":2,"./Grid.js":3,"./instrument.js":6,"./renderers.js":8,"./strategy.js":11,"ramda":1}],11:[function(require,module,exports){
+},{"./Grid.js":3,"./instrument.js":6,"./renderers.js":8,"./strategy.js":11,"ramda":1}],11:[function(require,module,exports){
 var R = require('ramda');
 var Grid = require('./Grid.js');
 

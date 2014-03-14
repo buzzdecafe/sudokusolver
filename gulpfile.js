@@ -23,11 +23,11 @@ gulp.task('scripts', function() {
   gulp.src('src/js/run.js')
     .pipe(browserify())
     .pipe(concat('app.js'))
-    .pipe(gulp.dest('build/js'))
-//    .pipe(notify('scripts task complete'));
+    .pipe(gulp.dest('build/js'));
+//    .pipe(notify({message: 'scripts task complete'}));
 });
 
-gulp.task('debug', function() {
+gulp.task('build:debug', function() {
   gulp.src('src/js/run.js')
     .pipe(browserify({debug: true, standalone: 'solver'}))
     .pipe(gulp.dest('build/js'))
@@ -35,11 +35,11 @@ gulp.task('debug', function() {
 
 gulp.task('files', function() {
   gulp.src('src/sudoku.html')
-    .pipe(gulp.dest('build'))
+    .pipe(gulp.dest('build'));
 //    .pipe(notify({message: 'html file copied to build dir'}));
 
   gulp.src('src/css/style.css')
-    .pipe(gulp.dest('build/css'))
+    .pipe(gulp.dest('build/css'));
 //    .pipe(notify({message: 'css file copied to build dir'}));
 });
 
