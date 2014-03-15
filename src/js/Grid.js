@@ -10,6 +10,10 @@ function isUnbound(dom) {
   return dom.length > 1;
 }
 
+function isValid(dom) {
+  return dom.length > 0;
+}
+
 function Grid(m) {
   if (!(this instanceof Grid)) {
     return new Grid(m);
@@ -28,10 +32,6 @@ function Grid(m) {
       return new Cell(x, y, domain);
     }, row));
   }, [], m); 
-  
-  R.each(function(c) {
-    c.domain = (c.domain.length === 1) ? c.domain : grid.constrain(c);
-  }, this.cells);
   
 };
 
@@ -57,10 +57,7 @@ Grid.prototype = {
   },
 
   getBoundByRow: function(y) {
-    return R.filter(R.where({
-      y: y,
-      domain: isBound
-    }), this.cells);
+    return R.filter(R.where({ y: y, domain: isBound }), this.cells);
   },
 
   getColumn: function(x) {
@@ -68,21 +65,22 @@ Grid.prototype = {
   },
 
   getBoundByColumn: function(x) {
-    return R.filter(R.where({
-      x: x,
-      domain: isBound
-    }), this.cells);
+    return R.filter(R.where({ x: x, domain: isBound }), this.cells);
   },
 
   getBox: function(cell) {
+    function inBox(n) {
+      return Math.floor(n/3) * 3;
+    }
+
     var boxCoords = {
-      x: Math.floor(cell.x / 3) * 3,
-      y: Math.floor(cell.y / 3) * 3,
+      x: inBox(cell.x),
+      y: inBox(cell.y),
     };
 
     return R.filter(R.where({
-      x: function(x) { return Math.floor(x/3) * 3 === boxCoords.x; },
-      y: function(y) { return Math.floor(y/3) * 3 === boxCoords.y; }
+      x: function(x) { return inBox(x) === boxCoords.x; },
+      y: function(y) { return inBox(y) === boxCoords.y; }
     }), this.cells);
 
   },
@@ -97,6 +95,7 @@ Grid.prototype = {
       R.filter(function(c) { return c.x !== cell.x && c.y !== cell.y && c.isUnbound(); }, this.getBox(cell)));
   },
 
+  // should be called with a cell that is bound
   forwardCheck: function(cell) {
     var value = R.car(cell.domain);
     // get row, col, box
@@ -106,10 +105,9 @@ Grid.prototype = {
     var updated = R.each(function(c) { c.remove(value); }, related);
 
     // if any domain.length becomes one, forwardCheck that cell
-    R.all(this.forwardCheck, R.filter(R.where({domain: isBound}), updated));
-
-    // if any domain.length becomes zero, backtrack
-    return R.all(function(c) { return c.isValid(); }, updated);
+    // if any domain.length becomes zero, backtrack--that means restoring prior state
+    return R.all(this.forwardCheck, R.filter(R.where({domain: isBound}), updated)) &&
+           R.all(R.where({domain: isValid}), updated);
   },
   
   constrain: function(cell) {
@@ -125,6 +123,12 @@ Grid.prototype = {
     return cell.domain;
   },
 
+  constrainAll: function() {
+    R.each(function(c) {
+      c.domain = (c.domain.length === 1) ? c.domain : grid.constrain(c);
+    }, this.cells);
+  }, 
+  
   isValid: function() {
     
     var grid = this;
