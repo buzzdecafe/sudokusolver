@@ -10,9 +10,6 @@ function isUnbound(dom) {
   return dom.length > 1;
 }
 
-function isValid(dom) {
-  return dom.length > 0;
-}
 
 function Grid(m) {
   if (!(this instanceof Grid)) {
@@ -95,40 +92,10 @@ Grid.prototype = {
       R.filter(function(c) { return c.x !== cell.x && c.y !== cell.y && c.isUnbound(); }, this.getBox(cell)));
   },
 
-  // should be called with a cell that is bound
-  forwardCheck: function(cell) {
-    var value = R.car(cell.domain);
-    // get row, col, box
-    var related = this.getUnboundRelatives(cell);
-
-    // iterate over cells and remove cell value from domains
-    var updated = R.each(function(c) { c.remove(value); }, related);
-
-    // if any domain.length becomes one, forwardCheck that cell
-    // if any domain.length becomes zero, backtrack--that means restoring prior state
-    return R.all(this.forwardCheck, R.filter(R.where({domain: isBound}), updated)) &&
-           R.all(R.where({domain: isValid}), updated);
-  },
-  
-  constrain: function(cell) {
-    function boundValue(acc, cell) {
-      return acc.concat(cell.domain); 
-    }
-    var rowBound = R.foldl(boundValue, [], this.getBoundByRow(cell.y));
-    var colBound = R.foldl(boundValue, [], this.getBoundByColumn(cell.x));
-    var boxBound = R.foldl(boundValue, [], this.getBoundByBox(cell));
-    
-    cell.constrain(rowBound).constrain(colBound).constrain(boxBound);
-    
-    return cell.domain;
+  update: function(cell, value) {
+    cell.bind(value);
   },
 
-  constrainAll: function() {
-    R.each(function(c) {
-      c.domain = (c.domain.length === 1) ? c.domain : grid.constrain(c);
-    }, this.cells);
-  }, 
-  
   isValid: function() {
     
     var grid = this;

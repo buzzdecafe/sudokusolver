@@ -25,6 +25,35 @@ function load(g) {
   render(grid);
 }
 
+function forwardCheck(grid, cell) {
+  var value = R.car(cell.domain);
+  // get row, col, box
+  var related = grid.getUnboundRelatives(cell);
+  var fwdCheckGrid = R.curry(forwardCheck)(grid);
+
+  // iterate over cells and remove cell value from domains
+  var updated = R.each(function(c) { c.remove(value); }, related);
+
+  // if any domain.length becomes one, forwardCheck that cell
+  // if any domain.length becomes zero, backtrack--that means restoring prior state
+  return R.all(fwdCheckGrid, R.filter(R.where({domain: isBound}), updated)) &&
+         R.all(R.where({domain: isValid}), updated);
+};
+  
+function boundValue(acc, cell) {
+  return acc.concat(cell.domain); 
+}
+
+function constrain(grid, cell) {
+  var rowBound = R.foldl(boundValue, [], grid.getBoundByRow(cell.y));
+  var colBound = R.foldl(boundValue, [], grid.getBoundByColumn(cell.x));
+  var boxBound = R.foldl(boundValue, [], grid.getBoundByBox(cell));
+  
+  cell.constrain(rowBound).constrain(colBound).constrain(boxBound);
+  return cell.domain;
+};
+
+
 function solve(g) {
   var i, cell, domain;
   g = g || grid;
@@ -73,4 +102,36 @@ module.exports = {
 };   
 
 
- 
+/*
+ *
+  // should be called with a cell that is bound
+  forwardCheck: function(cell) {
+    var value = R.car(cell.domain);
+    // get row, col, box
+    var related = this.getUnboundRelatives(cell);
+
+    // iterate over cells and remove cell value from domains
+    var updated = R.each(function(c) { c.remove(value); }, related);
+
+    // if any domain.length becomes one, forwardCheck that cell
+    // if any domain.length becomes zero, backtrack--that means restoring prior state
+    return R.all(this.forwardCheck, R.filter(R.where({domain: isBound}), updated)) &&
+           R.all(R.where({domain: isValid}), updated);
+  },
+  
+  constrain: function(cell, grid) {
+    function boundValue(acc, cell) {
+      return acc.concat(cell.domain); 
+    }
+    var rowBound = R.foldl(boundValue, [], grid.getBoundByRow(cell.y));
+    var colBound = R.foldl(boundValue, [], grid.getBoundByColumn(cell.x));
+    var boxBound = R.foldl(boundValue, [], grid.getBoundByBox(cell));
+    
+    cell.constrain(rowBound).constrain(colBound).constrain(boxBound);
+    
+    return cell.domain;
+  },
+
+
+
+ */

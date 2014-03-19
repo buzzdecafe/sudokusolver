@@ -6,6 +6,10 @@ function Cell(x, y, domain) {
   this.domain = domain;
 }
 
+Cell.prototype.bind = function(n) {
+  this.domain = [n];
+};
+
 Cell.prototype.constrain = function(arr) {
   this.domain = R.difference(this.domain, arr);
   return this;
