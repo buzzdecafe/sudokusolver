@@ -1,5 +1,5 @@
 var R = require('ramda');
-var Cell = require('./Cell.js');
+var Cell = require('./Cell');
 var EMPTY = 0;
 
 function isBound(dom) {
@@ -30,6 +30,13 @@ function Grid(m) {
     }, row));
   }, [], m); 
   
+};
+
+Grid.rehydrate = function(jsonGrid) {
+  var g = new Grid([]);
+  g.matrix = jsonGrid.matrix;
+  g.cells = R.map(function(c) { return new Cell(c.x, c.y, c.domain); }, jsonGrid.cells);
+  return g;
 };
 
 Grid.prototype = {

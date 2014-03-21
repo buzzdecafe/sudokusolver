@@ -1,5 +1,6 @@
 var R = require('ramda');
 var Grid = require('./Grid.js');
+var History = require('./History');
 var strategy = require('./strategy.js');
 var renderers = require('./renderers.js');
 var instrument = require('./instrument.js').init();
@@ -8,7 +9,7 @@ var grid;
 var matrixClone;
 var render = renderers.console;
 var forwardCheck = false;
-var domainBoard;
+var history;
 
 function reset() {
   instrument.reset();
@@ -20,8 +21,10 @@ function useForwardChecking(bool) {
 }
 
 function load(g) {
+  history = new History();
   grid = g;
   matrixClone = R.map(R.clone, grid.matrix);
+  history.push(g);
   render(grid);
 }
 
@@ -53,6 +56,7 @@ function constrain(grid, cell) {
   return cell.domain;
 };
 
+var history = [];
 
 function solve(g) {
   var i, cell, domain;
@@ -67,9 +71,10 @@ function solve(g) {
     return true;
   }
 
-  domain = g.constrain(cell);
+  domain = constrain(g, cell);
   i = 0;
   while (i < domain.length) {
+
     g.update(cell, domain[i]); 
     if (solve(g)) {               
       return true;
