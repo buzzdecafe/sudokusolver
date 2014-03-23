@@ -10,7 +10,6 @@ function isUnbound(dom) {
   return dom.length > 1;
 }
 
-
 function Grid(m) {
   if (!(this instanceof Grid)) {
     return new Grid(m);
@@ -33,9 +32,10 @@ function Grid(m) {
 };
 
 Grid.rehydrate = function(jsonGrid) {
+  var dryGrid = JSON.parse(jsonGrid);
   var g = new Grid([]);
-  g.matrix = jsonGrid.matrix;
-  g.cells = R.map(function(c) { return new Cell(c.x, c.y, c.domain); }, jsonGrid.cells);
+  g.matrix = dryGrid.matrix;
+  g.cells = R.map(function(c) { return new Cell(c.x, c.y, c.domain); }, dryGrid.cells);
   return g;
 };
 
@@ -101,6 +101,15 @@ Grid.prototype = {
 
   update: function(cell, value) {
     cell.bind(value);
+  },
+
+  toMatrix: function() {
+    var grid = this;
+    return R.map(function(yIndex) {
+      return R.map(function(c) { 
+        return c.isBound() ? c.domain[0] : 0; 
+      }, R.filter(R.where({y: yIndex}), grid.cells).sort(function(a, b) { return a.x - b.x; }));
+    }, R.range(0,9));
   },
 
   isValid: function() {

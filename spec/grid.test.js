@@ -114,6 +114,11 @@ describe("Grid ::", function() {
       });
     });
 
+    describe("toMatrix", function() {
+      it("converts a grid to a 2D array of numbers", function() {
+        expect(grid.toMatrix()).toEqual(mx.valid);
+      });
+    });
     
     describe("isValid ::", function() {
       it("detects if a grid has any duplicate values", function() {
