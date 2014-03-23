@@ -4,7 +4,7 @@ var Grid = require('./Grid.js');
 var selectedKey = 'bruteforce';
 var algoMap = {
   bruteforce: function(g) {
-    return g.findEmptyCell();
+    return g.getFirstUnboundCell();
   },
   constrained: function(g) {
     return R.car(g.getMostConstrainedCells());

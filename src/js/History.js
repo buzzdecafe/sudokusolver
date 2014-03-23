@@ -13,6 +13,10 @@ History.prototype = {
 
   pop: function() {
     return Grid.rehydrate(this.stack.pop());
+  },
+
+  size: function() {
+    return this.stack.length;
   }
 };
 

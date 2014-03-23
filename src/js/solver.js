@@ -75,13 +75,14 @@ function solve(g) {
   i = 0;
   while (i < domain.length) {
 
+    history.push(g);
     g.update(cell, domain[i]); 
     if (solve(g)) {               
       return true;
     }
 
-    // mark cell as empty and backtrack    
-    g.update(cell, 0);
+    // backtrack    
+    g = history.pop();
     i += 1;
   }
   return false;
@@ -107,36 +108,3 @@ module.exports = {
 };   
 
 
-/*
- *
-  // should be called with a cell that is bound
-  forwardCheck: function(cell) {
-    var value = R.car(cell.domain);
-    // get row, col, box
-    var related = this.getUnboundRelatives(cell);
-
-    // iterate over cells and remove cell value from domains
-    var updated = R.each(function(c) { c.remove(value); }, related);
-
-    // if any domain.length becomes one, forwardCheck that cell
-    // if any domain.length becomes zero, backtrack--that means restoring prior state
-    return R.all(this.forwardCheck, R.filter(R.where({domain: isBound}), updated)) &&
-           R.all(R.where({domain: isValid}), updated);
-  },
-  
-  constrain: function(cell, grid) {
-    function boundValue(acc, cell) {
-      return acc.concat(cell.domain); 
-    }
-    var rowBound = R.foldl(boundValue, [], grid.getBoundByRow(cell.y));
-    var colBound = R.foldl(boundValue, [], grid.getBoundByColumn(cell.x));
-    var boxBound = R.foldl(boundValue, [], grid.getBoundByBox(cell));
-    
-    cell.constrain(rowBound).constrain(colBound).constrain(boxBound);
-    
-    return cell.domain;
-  },
-
-
-
- */

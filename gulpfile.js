@@ -20,7 +20,7 @@ gulp.task('test', function() {
 });
 
 gulp.task('scripts', function() {
-  gulp.src('src/js/run.js')
+  gulp.src('src/js/dom/run.js')
     .pipe(browserify())
     .pipe(concat('app.js'))
     .pipe(gulp.dest('build/js'));

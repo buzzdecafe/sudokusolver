@@ -1504,6 +1504,10 @@ function Cell(x, y, domain) {
   this.domain = domain;
 }
 
+Cell.prototype.bind = function(n) {
+  this.domain = [n];
+};
+
 Cell.prototype.constrain = function(arr) {
   this.domain = R.difference(this.domain, arr);
   return this;
@@ -1536,7 +1540,7 @@ module.exports = Cell;
 
 },{"ramda":1}],3:[function(require,module,exports){
 var R = require('ramda');
-var Cell = require('./Cell.js');
+var Cell = require('./Cell');
 var EMPTY = 0;
 
 function isBound(dom) {
@@ -1566,10 +1570,14 @@ function Grid(m) {
     }, row));
   }, [], m); 
   
-  R.each(function(c) {
-    c.domain = (c.domain.length === 1) ? c.domain : grid.constrain(c);
-  }, this.cells);
-  
+};
+
+Grid.rehydrate = function(jsonGrid) {
+  var dryGrid = JSON.parse(jsonGrid);
+  var g = new Grid([]);
+  g.matrix = dryGrid.matrix;
+  g.cells = R.map(function(c) { return new Cell(c.x, c.y, c.domain); }, dryGrid.cells);
+  return g;
 };
 
 Grid.prototype = {
@@ -1594,10 +1602,7 @@ Grid.prototype = {
   },
 
   getBoundByRow: function(y) {
-    return R.filter(R.where({
-      y: y,
-      domain: isBound
-    }), this.cells);
+    return R.filter(R.where({ y: y, domain: isBound }), this.cells);
   },
 
   getColumn: function(x) {
@@ -1605,21 +1610,22 @@ Grid.prototype = {
   },
 
   getBoundByColumn: function(x) {
-    return R.filter(R.where({
-      x: x,
-      domain: isBound
-    }), this.cells);
+    return R.filter(R.where({ x: x, domain: isBound }), this.cells);
   },
 
   getBox: function(cell) {
+    function inBox(n) {
+      return Math.floor(n/3) * 3;
+    }
+
     var boxCoords = {
-      x: Math.floor(cell.x / 3) * 3,
-      y: Math.floor(cell.y / 3) * 3,
+      x: inBox(cell.x),
+      y: inBox(cell.y),
     };
 
     return R.filter(R.where({
-      x: function(x) { return Math.floor(x/3) * 3 === boxCoords.x; },
-      y: function(y) { return Math.floor(y/3) * 3 === boxCoords.y; }
+      x: function(x) { return inBox(x) === boxCoords.x; },
+      y: function(y) { return inBox(y) === boxCoords.y; }
     }), this.cells);
 
   },
@@ -1634,32 +1640,17 @@ Grid.prototype = {
       R.filter(function(c) { return c.x !== cell.x && c.y !== cell.y && c.isUnbound(); }, this.getBox(cell)));
   },
 
-  forwardCheck: function(cell) {
-    var value = R.car(cell.domain);
-    // get row, col, box
-    var related = this.getUnboundRelatives(cell);
-
-    // iterate over cells and remove cell value from domains
-    var updated = R.each(function(c) { c.remove(value); }, related);
-
-    // if any domain.length becomes one, forwardCheck that cell
-    R.all(this.forwardCheck, R.filter(R.where({domain: isBound}), updated));
-
-    // if any domain.length becomes zero, backtrack
-    return R.all(function(c) { return c.isValid(); }, updated);
+  update: function(cell, value) {
+    cell.bind(value);
   },
-  
-  constrain: function(cell) {
-    function boundValue(acc, cell) {
-      return acc.concat(cell.domain); 
-    }
-    var rowBound = R.foldl(boundValue, [], this.getBoundByRow(cell.y));
-    var colBound = R.foldl(boundValue, [], this.getBoundByColumn(cell.x));
-    var boxBound = R.foldl(boundValue, [], this.getBoundByBox(cell));
-    
-    cell.constrain(rowBound).constrain(colBound).constrain(boxBound);
-    
-    return cell.domain;
+
+  toMatrix: function() {
+    var grid = this;
+    return R.map(function(yIndex) {
+      return R.map(function(c) { 
+        return c.isBound() ? c.domain[0] : 0; 
+      }, R.filter(R.where({y: yIndex}), grid.cells).sort(function(a, b) { return a.x - b.x; }));
+    }, R.range(0,9));
   },
 
   isValid: function() {
@@ -1691,8 +1682,35 @@ module.exports = Grid;
 
 
 
-},{"./Cell.js":2,"ramda":1}],4:[function(require,module,exports){
-var solver = require('./solver.js');
+},{"./Cell":2,"ramda":1}],4:[function(require,module,exports){
+var Grid = require('./Grid');
+
+function History() {
+  this.stack = [];
+}
+
+History.prototype = {
+  constructor: History,
+
+  push: function(g) {
+    this.stack.push(JSON.stringify(g));
+  },
+
+  pop: function() {
+    return Grid.rehydrate(this.stack.pop());
+  },
+
+  size: function() {
+    return this.stack.length;
+  }
+};
+
+
+
+module.exports = History;
+
+},{"./Grid":3}],5:[function(require,module,exports){
+var solver = require('../solver.js');
 
 solver.setRenderer('html');
 
@@ -1713,129 +1731,11 @@ document.addEventListener('loadAnother', function(e) {
 });
 
 
-},{"./loadView.js":7,"./solveView.js":9,"./solver.js":10}],5:[function(require,module,exports){
-
-module.exports = {
-  Easy: [
-    [
-      [0,0,0,2,6,0,7,0,1],
-      [6,8,0,0,7,0,0,9,0],
-      [1,9,0,0,0,4,5,0,0],
-      [8,2,0,1,0,0,0,4,0],
-      [0,0,4,6,0,2,9,0,0],
-      [0,5,0,0,0,3,0,2,8],
-      [0,0,9,3,0,0,0,7,4],
-      [0,4,0,0,5,0,0,3,6],
-      [7,0,3,0,1,8,0,0,0]
-    ],
-    [
-      [1,0,0,4,8,9,0,0,6],
-      [7,3,0,0,0,0,0,4,0],
-      [0,0,0,0,0,1,2,9,5],
-      [0,0,7,1,2,0,6,0,0],
-      [5,0,0,7,0,3,0,0,8],
-      [0,0,6,0,9,5,7,0,0],
-      [9,1,4,6,0,0,0,0,0],
-      [0,2,0,0,0,0,0,3,7],
-      [8,0,0,5,1,2,0,0,4]
-    ]
-  ],
-  Medium: [
-    [
-      [0,2,0,6,0,8,0,0,0],
-      [5,8,0,0,0,9,7,0,0],
-      [0,0,0,0,4,0,0,0,0],
-      [3,7,0,0,0,0,5,0,0],
-      [6,0,0,0,0,0,0,0,4],
-      [0,0,8,0,0,0,0,1,3],
-      [0,0,0,0,2,0,0,0,0],
-      [0,0,9,8,0,0,0,3,6],
-      [0,0,0,3,0,6,0,9,0]
-    ],
-  ],
-  Hard: [
-    [
-      [0,0,0,6,0,0,4,0,0],
-      [7,0,0,0,0,3,6,0,0],
-      [0,0,0,0,9,1,0,8,0],
-      [0,0,0,0,0,0,0,0,0],
-      [0,5,0,1,8,0,0,0,3],
-      [0,0,0,3,0,6,0,4,5],
-      [0,4,0,2,0,0,0,6,0],
-      [9,0,3,0,0,0,0,0,0],
-      [0,2,0,0,0,0,1,0,0]
-    ],
-    [
-      [2,0,0,3,0,0,0,0,0],
-      [8,0,4,0,6,2,0,0,3],
-      [0,1,3,8,0,0,2,0,0],
-      [0,0,0,0,2,0,3,9,0],
-      [5,0,7,0,0,0,6,2,1],
-      [0,3,2,0,0,6,0,0,0],
-      [0,2,0,0,9,1,4,0,0],
-      [6,0,1,2,5,0,8,0,9],
-      [0,0,0,0,0,1,0,0,2]
-    ]
-  ],
-  Brutal: [
-    [
-      [0,2,0,0,0,0,0,0,0],
-      [0,0,0,6,0,0,0,0,3],
-      [0,7,4,0,8,0,0,0,0],
-      [0,0,0,0,0,3,0,0,2],
-      [0,8,0,0,4,0,0,1,0],
-      [6,0,0,5,0,0,0,0,0],
-      [0,0,0,0,1,0,7,8,0],
-      [5,0,0,0,0,9,0,0,0],
-      [0,0,0,0,0,0,0,4,0]
-    ]
-  ]
-};
-
-},{}],6:[function(require,module,exports){
-
-
-
-module.exports = {
-  init: function() {
-    var undef, startTime, endTime, ops = 0;
-
-    return {
-      getDuration: function() {
-        return endTime - startTime;
-      },
-
-      getOps: function() {
-        return ops;
-      },
-
-      start: function() {
-        startTime = startTime || new Date();
-        ops += 1;
-      },
-
-      end: function() {
-        endTime = new Date();
-      },
-
-      reset: function() {
-        startTime = undef;
-        endTime = undef;
-        ops = 0;
-      }
-
-    };
-  }
-
-};
-
-
-
-},{}],7:[function(require,module,exports){
+},{"../solver.js":11,"./loadView.js":6,"./solveView.js":7}],6:[function(require,module,exports){
 var R = require('ramda');
-var Grid = require('./Grid.js');
-var solver = require('./solver.js');
-var gridData = require('./grids.js');
+var Grid = require('../Grid.js');
+var solver = require('../solver.js');
+var gridData = require('../grids.js');
 
 // convert table values to js 2d-matrix
 function htmlToMatrix(tbl) {
@@ -1932,32 +1832,8 @@ module.exports = document.getElementById('load');
 
 
 
-},{"./Grid.js":3,"./grids.js":5,"./solver.js":10,"ramda":1}],8:[function(require,module,exports){
-var R = require('ramda');
-
-
-module.exports = {
-
-  console: function(g) { console.log(g); },
-  
-  html: function(g) {
-    var grid = document.getElementById('grid');
-    var htmlStr = R.reduce(function(acc, row) {
-      return acc += '<tr>' + 
-             R.foldl(function(acc, cell) {
-               return acc + '<td>' + (cell || '') + '</td>';
-             }, '', row) +
-             '</tr>';
-    }, '', g.matrix);
-     grid.innerHTML = htmlStr;
-  }
- 
-};
-
-
-
-},{"ramda":1}],9:[function(require,module,exports){
-var solver = require('./solver.js');
+},{"../Grid.js":3,"../grids.js":8,"../solver.js":11,"ramda":1}],7:[function(require,module,exports){
+var solver = require('../solver.js');
 
 // attach to DOM
 var fwdCheck = document.getElementById('fwdcheck');
@@ -2021,9 +1897,154 @@ module.exports = document.getElementById('solve');
 
 
 
-},{"./solver.js":10}],10:[function(require,module,exports){
+},{"../solver.js":11}],8:[function(require,module,exports){
+
+module.exports = {
+  Easy: [
+    [
+      [0,0,0,2,6,0,7,0,1],
+      [6,8,0,0,7,0,0,9,0],
+      [1,9,0,0,0,4,5,0,0],
+      [8,2,0,1,0,0,0,4,0],
+      [0,0,4,6,0,2,9,0,0],
+      [0,5,0,0,0,3,0,2,8],
+      [0,0,9,3,0,0,0,7,4],
+      [0,4,0,0,5,0,0,3,6],
+      [7,0,3,0,1,8,0,0,0]
+    ],
+    [
+      [1,0,0,4,8,9,0,0,6],
+      [7,3,0,0,0,0,0,4,0],
+      [0,0,0,0,0,1,2,9,5],
+      [0,0,7,1,2,0,6,0,0],
+      [5,0,0,7,0,3,0,0,8],
+      [0,0,6,0,9,5,7,0,0],
+      [9,1,4,6,0,0,0,0,0],
+      [0,2,0,0,0,0,0,3,7],
+      [8,0,0,5,1,2,0,0,4]
+    ]
+  ],
+  Medium: [
+    [
+      [0,2,0,6,0,8,0,0,0],
+      [5,8,0,0,0,9,7,0,0],
+      [0,0,0,0,4,0,0,0,0],
+      [3,7,0,0,0,0,5,0,0],
+      [6,0,0,0,0,0,0,0,4],
+      [0,0,8,0,0,0,0,1,3],
+      [0,0,0,0,2,0,0,0,0],
+      [0,0,9,8,0,0,0,3,6],
+      [0,0,0,3,0,6,0,9,0]
+    ],
+  ],
+  Hard: [
+    [
+      [0,0,0,6,0,0,4,0,0],
+      [7,0,0,0,0,3,6,0,0],
+      [0,0,0,0,9,1,0,8,0],
+      [0,0,0,0,0,0,0,0,0],
+      [0,5,0,1,8,0,0,0,3],
+      [0,0,0,3,0,6,0,4,5],
+      [0,4,0,2,0,0,0,6,0],
+      [9,0,3,0,0,0,0,0,0],
+      [0,2,0,0,0,0,1,0,0]
+    ],
+    [
+      [2,0,0,3,0,0,0,0,0],
+      [8,0,4,0,6,2,0,0,3],
+      [0,1,3,8,0,0,2,0,0],
+      [0,0,0,0,2,0,3,9,0],
+      [5,0,7,0,0,0,6,2,1],
+      [0,3,2,0,0,6,0,0,0],
+      [0,2,0,0,9,1,4,0,0],
+      [6,0,1,2,5,0,8,0,9],
+      [0,0,0,0,0,1,0,0,2]
+    ]
+  ],
+  Brutal: [
+    [
+      [0,2,0,0,0,0,0,0,0],
+      [0,0,0,6,0,0,0,0,3],
+      [0,7,4,0,8,0,0,0,0],
+      [0,0,0,0,0,3,0,0,2],
+      [0,8,0,0,4,0,0,1,0],
+      [6,0,0,5,0,0,0,0,0],
+      [0,0,0,0,1,0,7,8,0],
+      [5,0,0,0,0,9,0,0,0],
+      [0,0,0,0,0,0,0,4,0]
+    ]
+  ]
+};
+
+},{}],9:[function(require,module,exports){
+
+
+
+module.exports = {
+  init: function() {
+    var undef, startTime, endTime, ops = 0;
+
+    return {
+      getDuration: function() {
+        return endTime - startTime;
+      },
+
+      getOps: function() {
+        return ops;
+      },
+
+      start: function() {
+        startTime = startTime || new Date();
+        ops += 1;
+      },
+
+      end: function() {
+        endTime = new Date();
+      },
+
+      reset: function() {
+        startTime = undef;
+        endTime = undef;
+        ops = 0;
+      }
+
+    };
+  }
+
+};
+
+
+
+},{}],10:[function(require,module,exports){
+var R = require('ramda');
+
+
+module.exports = {
+
+  console: function(g) { 
+    console.log(g.toMatrix()); 
+  },
+  
+  html: function(g) {
+    var grid = document.getElementById('grid');
+    var htmlStr = R.reduce(function(acc, row) {
+      return acc += '<tr>' + 
+             R.foldl(function(acc, cell) {
+               return acc + '<td>' + (cell || '') + '</td>';
+             }, '', row) +
+             '</tr>';
+    }, '', g.toMatrix());
+    grid.innerHTML = htmlStr;
+  }
+ 
+};
+
+
+
+},{"ramda":1}],11:[function(require,module,exports){
 var R = require('ramda');
 var Grid = require('./Grid.js');
+var History = require('./History');
 var strategy = require('./strategy.js');
 var renderers = require('./renderers.js');
 var instrument = require('./instrument.js').init();
@@ -2032,7 +2053,7 @@ var grid;
 var matrixClone;
 var render = renderers.console;
 var forwardCheck = false;
-var domainBoard;
+var history;
 
 function reset() {
   instrument.reset();
@@ -2044,10 +2065,42 @@ function useForwardChecking(bool) {
 }
 
 function load(g) {
+  history = new History();
   grid = g;
   matrixClone = R.map(R.clone, grid.matrix);
+  history.push(g);
   render(grid);
 }
+
+function forwardCheck(grid, cell) {
+  var value = R.car(cell.domain);
+  // get row, col, box
+  var related = grid.getUnboundRelatives(cell);
+  var fwdCheckGrid = R.curry(forwardCheck)(grid);
+
+  // iterate over cells and remove cell value from domains
+  var updated = R.each(function(c) { c.remove(value); }, related);
+
+  // if any domain.length becomes one, forwardCheck that cell
+  // if any domain.length becomes zero, backtrack--that means restoring prior state
+  return R.all(fwdCheckGrid, R.filter(R.where({domain: isBound}), updated)) &&
+         R.all(R.where({domain: isValid}), updated);
+};
+  
+function boundValue(acc, cell) {
+  return acc.concat(cell.domain); 
+}
+
+function constrain(grid, cell) {
+  var rowBound = R.foldl(boundValue, [], grid.getBoundByRow(cell.y));
+  var colBound = R.foldl(boundValue, [], grid.getBoundByColumn(cell.x));
+  var boxBound = R.foldl(boundValue, [], grid.getBoundByBox(cell));
+  
+  cell.constrain(rowBound).constrain(colBound).constrain(boxBound);
+  return cell.domain;
+};
+
+var history = [];
 
 function solve(g) {
   var i, cell, domain;
@@ -2062,16 +2115,18 @@ function solve(g) {
     return true;
   }
 
-  domain = g.constrain(cell);
+  domain = constrain(g, cell);
   i = 0;
   while (i < domain.length) {
+
+    history.push(g);
     g.update(cell, domain[i]); 
     if (solve(g)) {               
       return true;
     }
 
-    // mark cell as empty and backtrack    
-    g.update(cell, 0);
+    // backtrack    
+    g = history.pop();
     i += 1;
   }
   return false;
@@ -2097,16 +2152,15 @@ module.exports = {
 };   
 
 
- 
 
-},{"./Grid.js":3,"./instrument.js":6,"./renderers.js":8,"./strategy.js":11,"ramda":1}],11:[function(require,module,exports){
+},{"./Grid.js":3,"./History":4,"./instrument.js":9,"./renderers.js":10,"./strategy.js":12,"ramda":1}],12:[function(require,module,exports){
 var R = require('ramda');
 var Grid = require('./Grid.js');
 
 var selectedKey = 'bruteforce';
 var algoMap = {
   bruteforce: function(g) {
-    return g.findEmptyCell();
+    return g.getFirstUnboundCell();
   },
   constrained: function(g) {
     return R.car(g.getMostConstrainedCells());
@@ -2124,4 +2178,4 @@ module.exports = {
 };
 
 
-},{"./Grid.js":3,"ramda":1}]},{},[4])
+},{"./Grid.js":3,"ramda":1}]},{},[5])
