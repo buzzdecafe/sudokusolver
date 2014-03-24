@@ -61,6 +61,7 @@ var history = [];
 function solve(g) {
   var i, cell, domain;
   g = g || grid;
+  history.push(g);
 
   instrument.start();
   
@@ -75,7 +76,6 @@ function solve(g) {
   i = 0;
   while (i < domain.length) {
 
-    history.push(g);
     g.update(cell, domain[i]); 
     if (solve(g)) {               
       return true;
