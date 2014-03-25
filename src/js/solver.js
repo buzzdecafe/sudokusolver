@@ -56,12 +56,9 @@ function constrain(grid, cell) {
   return cell.domain;
 };
 
-var history = [];
-
-function solve(g) {
+function solve() {
   var i, cell, domain;
-  g = g || grid;
-  history.push(g);
+  g = grid;
 
   instrument.start();
   
@@ -77,7 +74,8 @@ function solve(g) {
   while (i < domain.length) {
 
     g.update(cell, domain[i]); 
-    if (solve(g)) {               
+    history.push(g);
+    if (solve()) {               
       return true;
     }
 
