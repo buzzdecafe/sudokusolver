@@ -21,7 +21,7 @@ var solveBtn = document.getElementById('solveBtn');
 solveBtn.addEventListener('click', function() { 
   resetBtn.setAttribute('disabled', true);
   fwdCheck.setAttribute('disabled', true);
-  if (solver.solve()) {
+  if (solver.solve(solver.getHistory())) {
     showOpCount() && showDuration(); 
   } else {
     alert('crap, failed to solve it! This should never happen');

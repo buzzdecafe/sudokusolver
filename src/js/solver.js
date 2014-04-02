@@ -56,9 +56,9 @@ function constrain(grid, cell) {
   return cell.domain;
 };
 
-function solve() {
-  var i, cell, domain;
-  g = grid;
+function solve(stack) {
+  var i, cell, domain, len;
+  g = stack.pop();
 
   instrument.start();
   
@@ -69,18 +69,21 @@ function solve() {
     return true;
   }
 
+  stack.push(g);
   domain = constrain(g, cell);
+
   i = 0;
-  while (i < domain.length) {
+  len = domain.length;
+  while (i < len) {
 
     g.update(cell, domain[i]); 
-    history.push(g);
-    if (solve()) {               
+    stack.push(g);
+    if (solve(stack)) {               
       return true;
     }
 
     // backtrack    
-    g = history.pop();
+    g = stack.pop();
     i += 1;
   }
   return false;
@@ -88,6 +91,7 @@ function solve() {
 
 
 module.exports = {
+  getHistory: function() { return history; },
   instrument: instrument,
   load: load,
   reset: reset,
