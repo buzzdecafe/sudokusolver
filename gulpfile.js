@@ -13,21 +13,21 @@ gulp.task('clean', function() {
 });
 
 gulp.task('test', function() {
-  gulp.src('src/js/**/*')
+  gulp.src('src/js/*')
     .pipe(jshint());                
   gulp.src('spec/*.js')
     .pipe(jasmine());
 });
 
 gulp.task('scripts', function() {
-  gulp.src('src/js/dom/run.js')
+  gulp.src('src/js/run.js')
     .pipe(browserify())
     .pipe(concat('app.js'))
-    .pipe(gulp.dest('build/js'));
-//    .pipe(notify({message: 'scripts task complete'}));
+    .pipe(gulp.dest('build/js'))
+//    .pipe(notify('scripts task complete'));
 });
 
-gulp.task('build:debug', function() {
+gulp.task('debug', function() {
   gulp.src('src/js/run.js')
     .pipe(browserify({debug: true, standalone: 'solver'}))
     .pipe(gulp.dest('build/js'))
@@ -35,11 +35,11 @@ gulp.task('build:debug', function() {
 
 gulp.task('files', function() {
   gulp.src('src/sudoku.html')
-    .pipe(gulp.dest('build'));
+    .pipe(gulp.dest('build'))
 //    .pipe(notify({message: 'html file copied to build dir'}));
 
   gulp.src('src/css/style.css')
-    .pipe(gulp.dest('build/css'));
+    .pipe(gulp.dest('build/css'))
 //    .pipe(notify({message: 'css file copied to build dir'}));
 });
 

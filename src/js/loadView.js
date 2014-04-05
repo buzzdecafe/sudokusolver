@@ -1,7 +1,7 @@
 var R = require('ramda');
-var Grid = require('../Grid.js');
-var solver = require('../solver.js');
-var gridData = require('../grids.js');
+var Grid = require('./Grid.js');
+var solver = require('./solver.js');
+var gridData = require('./grids.js');
 
 // convert table values to js 2d-matrix
 function htmlToMatrix(tbl) {

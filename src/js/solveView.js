@@ -1,9 +1,9 @@
-var solver = require('../solver.js');
+var solver = require('./solver.js');
 
 // attach to DOM
 var fwdCheck = document.getElementById('fwdcheck');
 fwdCheck.addEventListener('click', function(e) {
-  solver.useForwardChecking(this.value === '1');
+  solver.enableForwardChecking(this.value === '1');
 });
 
 var radios = document.getElementsByName('strategy');
@@ -21,7 +21,7 @@ var solveBtn = document.getElementById('solveBtn');
 solveBtn.addEventListener('click', function() { 
   resetBtn.setAttribute('disabled', true);
   fwdCheck.setAttribute('disabled', true);
-  if (solver.solve(solver.getHistory())) {
+  if (solver.solve()) {
     showOpCount() && showDuration(); 
   } else {
     alert('crap, failed to solve it! This should never happen');

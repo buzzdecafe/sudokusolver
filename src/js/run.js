@@ -1,4 +1,4 @@
-var solver = require('../solver.js');
+var solver = require('./solver.js');
 
 solver.setRenderer('html');
 

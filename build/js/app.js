@@ -261,7 +261,7 @@
             if (arr.length === Infinity) {
                 return arr.tail();
             }
-            return (arr.length > 1) ? slice(arr, 1) : [];
+            return (arr.length > 1) ? slice(arr, 1) : null;
         };
         aliasFor("tail").is("cdr");
 
@@ -815,10 +815,6 @@
             return foldr(function(acc, x) { return (contains(x, acc)) ? acc : prepend(x, acc); }, EMPTY, list);
         };
 
-        R.isSet = function(list) {
-            return uniq(list).length === list.length;
-        };
-
         // Returns a new list containing only one copy of each element in the original list, based upon the value
         // returned by applying the supplied predicate to two list elements.   Equality is strict here,  meaning
         // reference equality for objects and non-coercing equality for primitives.
@@ -1075,12 +1071,6 @@
             return partialCopy(function(key) {return !contains(key, names);}, obj);
         });
 
-        // Returns a new object that mixes in the own properties of two objects.
-        R.mixin = _(function(a, b) {
-          var mixed = pickAll(R.keys(a), a);
-          each(function(key) { mixed[key] = b[key]; }, R.keys(b));
-          return mixed;
-        });
 
         // Reports whether two functions have the same value for the specified property.  Useful as a curried predicate.
         R.eqProps = _(function(prop, obj1, obj2) {return obj1[prop] === obj2[prop];});
@@ -1290,7 +1280,7 @@
         // Determines the largest of a list of numbers (or elements that can be cast to numbers) using the supplied comparator
         R.maxWith = _(function(comparator, list) {
             if (!isArray(list) || !list.length) {
-                return null;
+                return undef;
             }
             var idx = 0, max = list[idx];
             while (++idx < list.length) {
@@ -1305,7 +1295,7 @@
         // Determines the smallest of a list of numbers (or elements that can be cast to numbers) using the supplied comparator
         R.minWith = _(function(comparator, list) {
             if (!isArray(list) || !list.length) {
-                return null;
+                return undef;
             }
             var idx = 0, max = list[idx];
             while (++idx < list.length) {
@@ -1496,179 +1486,156 @@
 }));
 
 },{}],2:[function(require,module,exports){
+var Grid = require('./Grid.js');
 var R = require('ramda');
 
-function Cell(x, y, domain) {
-  this.x = x;
-  this.y = y;
-  this.domain = domain;
-}
-
-Cell.prototype.bind = function(n) {
-  this.domain = [n];
+function DomainBoard(grid) {
+  this.matrix = R.map.idx(function(row, yIndex) {
+    return R.map.idx(function(cell, xindex) {
+      return cell ? [cell] : grid.constrain({x: xIndex, y: yIndex});
+    }, row);
+  }, grid.matrix);
+  this.history = [this.store()];
 };
 
-Cell.prototype.constrain = function(arr) {
-  this.domain = R.difference(this.domain, arr);
-  return this;
+DomainBoard.prototype = Grid.prototype;
+
+DomainBoard.prototype.constructor = DomainBoard;
+
+DomainBoard.prototype.updateDomain = function(value, arr) {
+  return R.map(function(dom) {
+    var i = dom.indexOf(value);
+    return (i > -1) ? dom.splice(i, 1) : dom;
+  }, arr);
 };
 
-Cell.prototype.remove = function(n) {
-  this.domain.splice(this.domain.indexOf(n), 1);
-  return this;
+DomainBoard.prototype.propagate = function(cell, value) {
+  var row = this.matrix[cell.y];
+  var col = this.colToArray(cell.x);
+  var box = this.boxToArray(cell);
+  var ok = false;
+  var hasDomain = function(a) { return a.length > 0; }; 
+  // push onto the stack
+  this.store();
+  
+  ok = all(hasDomain, this.updateDomain(value, row)) &&
+       all(hasDomain, this.updateDomain(value, col)) &&
+       all(hasDomain, this.updateDomain(value, box));
+
+  // if any empty domains, revert and return false;
+  if (ok) {
+    return true;
+  } else {
+    this.revert();
+    return false;
+  }
 };
 
-Cell.prototype.isBound = function() {
-  return this.domain.length === 1;
+DomainBoard.prototype.store = function() {
+  return JSON.stringify(this.matrix);
 };
 
-Cell.prototype.isUnbound = function() {
-  return this.domain.length > 1;
+DomainBoard.prototype.revert = function() {
+  this.matrix = JSON.parse(this.history.pop()); 
 };
 
-Cell.prototype.isValid = function() {
-  return this.domain.length >= 1;
-};
-
-Cell.prototype.isInvalid = function() {
-  return this.domain.length < 1;
-};
-
-module.exports = Cell;
+module.exports = DomainBoard;
 
 
-
-},{"ramda":1}],3:[function(require,module,exports){
+},{"./Grid.js":3,"ramda":1}],3:[function(require,module,exports){
 var R = require('ramda');
-var Cell = require('./Cell');
 var EMPTY = 0;
-
-function isBound(dom) {
-  return dom.length === 1;
-}
-
-function isUnbound(dom) {
-  return dom.length > 1;
-}
 
 function Grid(m) {
   if (!(this instanceof Grid)) {
     return new Grid(m);
   }
-  var grid = this;
-  
   this.matrix = m;
-  this.cells = R.foldl.idx(function(acc, row, y) {
-    return acc.concat(R.map.idx(function(n, x) {
-      var domain;
-      if (n === 0) {
-        domain = R.range(1,10);
-      } else {
-        domain = [n];
-      }
-      return new Cell(x, y, domain);
-    }, row));
-  }, [], m); 
-  
-};
-
-Grid.rehydrate = function(jsonGrid) {
-  var dryGrid = JSON.parse(jsonGrid);
-  var g = new Grid([]);
-  g.matrix = dryGrid.matrix;
-  g.cells = R.map(function(c) { return new Cell(c.x, c.y, c.domain); }, dryGrid.cells);
-  return g;
 };
 
 Grid.prototype = {
   constructor: Grid,
 
-  getFirstUnboundCell: function() {
-    return R.find(R.where({domain: isUnbound}), this.cells);
+  findEmptyCell: function() {
+    var cell = {};
+    cell.y = R.findIndex(function(r) { return R.contains(EMPTY, r); }, this.matrix);
+    if (cell.y !== null) {
+      cell.x = R.findIndex(function(c) { return c === EMPTY; }, this.matrix[cell.y]);
+    }
+    return (cell.y !== null && cell.x !== null) ? cell : false;
   },
 
-  getAllUnboundCells: function() {
-    return R.filter(R.where({domain: isUnbound}), this.cells);
+  getAllEmptyCells: function() {
+    return R.foldl.idx(function(acc, row, yIndex) {
+      return acc.concat(R.foldl.idx(function(innerAcc, value, xIndex) {
+        if (value === 0) {
+          innerAcc.push({x: xIndex, y: yIndex});
+        }
+        return innerAcc; 
+      }, [], row));
+    }, [], this.matrix);
+  },
+
+  getCellsByDomain: function() {
+    var grid = this;
+    return R.foldl(function(acc, cell) {
+      var key = grid.constrain(cell).length;
+      acc[key] = acc[key] || [];
+      acc[key].push(cell);
+      return acc;
+    }, {}, this.getAllEmptyCells());
   },
 
   getMostConstrainedCells: function() {
-    var unbound = this.getAllUnboundCells();
-    var minDom = R.minWith(function(a, b) { return a.domain.length - b.domain.length; }, unbound);
-    return (minDom && minDom.domain) ? R.filter(function(c) { return c.domain.length === minDom.domain.length; }, unbound) : [];
+    var counts = this.getCellsByDomain();
+    return counts[Math.min.apply(Math, R.keys(counts))];
   },
 
-  getRow: function(y) {
-    return R.filter(R.where({y: y}), this.cells);
-  },
-
-  getBoundByRow: function(y) {
-    return R.filter(R.where({ y: y, domain: isBound }), this.cells);
-  },
-
-  getColumn: function(x) {
-    return R.filter(R.where({x: x}), this.cells);
-  },
-
-  getBoundByColumn: function(x) {
-    return R.filter(R.where({ x: x, domain: isBound }), this.cells);
-  },
-
-  getBox: function(cell) {
-    function inBox(n) {
-      return Math.floor(n/3) * 3;
-    }
-
-    var boxCoords = {
-      x: inBox(cell.x),
-      y: inBox(cell.y),
-    };
-
-    return R.filter(R.where({
-      x: function(x) { return inBox(x) === boxCoords.x; },
-      y: function(y) { return inBox(y) === boxCoords.y; }
-    }), this.cells);
-
-  },
-
-  getBoundByBox: function(cell) {
-    return R.filter(R.where({domain: isBound}), this.getBox(cell));
-  },
-
-  getUnboundRelatives: function(cell) {
-    return R.filter(function(c) { return c.x !== cell.x && c.isUnbound(); }, this.getRow(cell.y)).concat(
-      R.filter(function(c) { return c.y !== cell.y && c.isUnbound(); }, this.getColumn(cell.x))).concat(
-      R.filter(function(c) { return c.x !== cell.x && c.y !== cell.y && c.isUnbound(); }, this.getBox(cell)));
+  constrain: function(cell) {
+    var rowWise = R.difference(R.range(1,10), this.matrix[cell.y]);
+    var colWise = R.difference(rowWise, this.colToArray(cell.x));
+    return R.difference(colWise, this.boxToArray(cell));
   },
 
   update: function(cell, value) {
-    cell.bind(value);
+    this.matrix[cell.y][cell.x] = value;
   },
 
-  toMatrix: function() {
-    var grid = this;
-    return R.map(function(yIndex) {
-      return R.map(function(c) { 
-        return c.isBound() ? c.domain[0] : 0; 
-      }, R.filter(R.where({y: yIndex}), grid.cells).sort(function(a, b) { return a.x - b.x; }));
-    }, R.range(0,9));
+  colToArray: function(x) {
+    return R.pluck(x, this.matrix);
+  },
+
+  getBox: function(cell) {
+    return {
+      x: Math.floor(cell.x/3) * 3,
+      y: Math.floor(cell.y/3) * 3
+    };
+  },
+
+  boxToArray: function(cell) {
+    var box = this.getBox(cell); 
+    return R.foldl(function(acc, row) {  
+      return acc.concat(R.map(R.I, row.slice(box.x, box.x + 3)));
+    }, [], this.matrix.slice(box.y, box.y + 3));
   },
 
   isValid: function() {
     
-    var grid = this;
-    var range = R.range(0,9);
-
-    // assert no empty domains && all bound cells have unique values
-    function validCellArray(cells) {
-      return R.all(function(c) { return c.isValid(); }, cells) &&
-             R.isSet(R.map(function(c) { return R.car(c.domain); }, R.filter(R.where({domain: isBound}), cells)));
+    function validate(arr) {
+      var nums = R.filter(function(n) { return n !== 0; }, arr);
+      return R.uniq(nums).length === nums.length;
     }
     
-    // assert all domains are sets
-    
-    return R.all(validCellArray, R.map(function(n) { return grid.getRow(n); }, range)) &&
-           R.all(validCellArray, R.map(function(n) { return grid.getColumn(n); }, range)) &&
-           R.all(validCellArray, R.map(function(n) { return grid.getBox({x: Math.floor(n/3) * 3, y: (n % 3) * 3 }); }, range));      
+    var rows = this.matrix;
+    var cols = R.map(this.colToArray.bind(this), R.range(0, 9));
+    var boxes = R.map(this.boxToArray.bind(this), R.foldl(function(acc, val) {
+        var cell = {
+          x: Math.floor(val/3) * 3,
+          y: ((val % 3) * 3)
+        };
+        return acc.concat(cell);
+      }, [], R.range(0, 9)));
+    return R.all(validate, rows) && R.all(validate, cols) && R.all(validate, boxes);
   },
 
   clone: function() {
@@ -1677,40 +1644,12 @@ Grid.prototype = {
 
 };
 
-
 module.exports = Grid;
 
 
 
-},{"./Cell":2,"ramda":1}],4:[function(require,module,exports){
-var Grid = require('./Grid');
-
-function History() {
-  this.stack = [];
-}
-
-History.prototype = {
-  constructor: History,
-
-  push: function(g) {
-    this.stack.push(JSON.stringify(g));
-  },
-
-  pop: function() {
-    return Grid.rehydrate(this.stack.pop());
-  },
-
-  size: function() {
-    return this.stack.length;
-  }
-};
-
-
-
-module.exports = History;
-
-},{"./Grid":3}],5:[function(require,module,exports){
-var solver = require('../solver.js');
+},{"ramda":1}],4:[function(require,module,exports){
+var solver = require('./solver.js');
 
 solver.setRenderer('html');
 
@@ -1731,11 +1670,129 @@ document.addEventListener('loadAnother', function(e) {
 });
 
 
-},{"../solver.js":11,"./loadView.js":6,"./solveView.js":7}],6:[function(require,module,exports){
+},{"./loadView.js":7,"./solveView.js":9,"./solver.js":10}],5:[function(require,module,exports){
+
+module.exports = {
+  Easy: [
+    [
+      [0,0,0,2,6,0,7,0,1],
+      [6,8,0,0,7,0,0,9,0],
+      [1,9,0,0,0,4,5,0,0],
+      [8,2,0,1,0,0,0,4,0],
+      [0,0,4,6,0,2,9,0,0],
+      [0,5,0,0,0,3,0,2,8],
+      [0,0,9,3,0,0,0,7,4],
+      [0,4,0,0,5,0,0,3,6],
+      [7,0,3,0,1,8,0,0,0]
+    ],
+    [
+      [1,0,0,4,8,9,0,0,6],
+      [7,3,0,0,0,0,0,4,0],
+      [0,0,0,0,0,1,2,9,5],
+      [0,0,7,1,2,0,6,0,0],
+      [5,0,0,7,0,3,0,0,8],
+      [0,0,6,0,9,5,7,0,0],
+      [9,1,4,6,0,0,0,0,0],
+      [0,2,0,0,0,0,0,3,7],
+      [8,0,0,5,1,2,0,0,4]
+    ]
+  ],
+  Medium: [
+    [
+      [0,2,0,6,0,8,0,0,0],
+      [5,8,0,0,0,9,7,0,0],
+      [0,0,0,0,4,0,0,0,0],
+      [3,7,0,0,0,0,5,0,0],
+      [6,0,0,0,0,0,0,0,4],
+      [0,0,8,0,0,0,0,1,3],
+      [0,0,0,0,2,0,0,0,0],
+      [0,0,9,8,0,0,0,3,6],
+      [0,0,0,3,0,6,0,9,0]
+    ],
+  ],
+  Hard: [
+    [
+      [0,0,0,6,0,0,4,0,0],
+      [7,0,0,0,0,3,6,0,0],
+      [0,0,0,0,9,1,0,8,0],
+      [0,0,0,0,0,0,0,0,0],
+      [0,5,0,1,8,0,0,0,3],
+      [0,0,0,3,0,6,0,4,5],
+      [0,4,0,2,0,0,0,6,0],
+      [9,0,3,0,0,0,0,0,0],
+      [0,2,0,0,0,0,1,0,0]
+    ],
+    [
+      [2,0,0,3,0,0,0,0,0],
+      [8,0,4,0,6,2,0,0,3],
+      [0,1,3,8,0,0,2,0,0],
+      [0,0,0,0,2,0,3,9,0],
+      [5,0,7,0,0,0,6,2,1],
+      [0,3,2,0,0,6,0,0,0],
+      [0,2,0,0,9,1,4,0,0],
+      [6,0,1,2,5,0,8,0,9],
+      [0,0,0,0,0,1,0,0,2]
+    ]
+  ],
+  Brutal: [
+    [
+      [0,2,0,0,0,0,0,0,0],
+      [0,0,0,6,0,0,0,0,3],
+      [0,7,4,0,8,0,0,0,0],
+      [0,0,0,0,0,3,0,0,2],
+      [0,8,0,0,4,0,0,1,0],
+      [6,0,0,5,0,0,0,0,0],
+      [0,0,0,0,1,0,7,8,0],
+      [5,0,0,0,0,9,0,0,0],
+      [0,0,0,0,0,0,0,4,0]
+    ]
+  ]
+};
+
+},{}],6:[function(require,module,exports){
+
+
+
+module.exports = {
+  init: function() {
+    var undef, startTime, endTime, ops = 0;
+
+    return {
+      getDuration: function() {
+        return endTime - startTime;
+      },
+
+      getOps: function() {
+        return ops;
+      },
+
+      start: function() {
+        startTime = startTime || new Date();
+        ops += 1;
+      },
+
+      end: function() {
+        endTime = new Date();
+      },
+
+      reset: function() {
+        startTime = undef;
+        endTime = undef;
+        ops = 0;
+      }
+
+    };
+  }
+
+};
+
+
+
+},{}],7:[function(require,module,exports){
 var R = require('ramda');
-var Grid = require('../Grid.js');
-var solver = require('../solver.js');
-var gridData = require('../grids.js');
+var Grid = require('./Grid.js');
+var solver = require('./solver.js');
+var gridData = require('./grids.js');
 
 // convert table values to js 2d-matrix
 function htmlToMatrix(tbl) {
@@ -1832,13 +1889,37 @@ module.exports = document.getElementById('load');
 
 
 
-},{"../Grid.js":3,"../grids.js":8,"../solver.js":11,"ramda":1}],7:[function(require,module,exports){
-var solver = require('../solver.js');
+},{"./Grid.js":3,"./grids.js":5,"./solver.js":10,"ramda":1}],8:[function(require,module,exports){
+var R = require('ramda');
+
+
+module.exports = {
+
+  console: function(g) { console.log(g); },
+  
+  html: function(g) {
+    var grid = document.getElementById('grid');
+    var htmlStr = R.reduce(function(acc, row) {
+      return acc += '<tr>' + 
+             R.foldl(function(acc, cell) {
+               return acc + '<td>' + (cell || '') + '</td>';
+             }, '', row) +
+             '</tr>';
+    }, '', g.matrix);
+     grid.innerHTML = htmlStr;
+  }
+ 
+};
+
+
+
+},{"ramda":1}],9:[function(require,module,exports){
+var solver = require('./solver.js');
 
 // attach to DOM
 var fwdCheck = document.getElementById('fwdcheck');
 fwdCheck.addEventListener('click', function(e) {
-  solver.useForwardChecking(this.value === '1');
+  solver.enableForwardChecking(this.value === '1');
 });
 
 var radios = document.getElementsByName('strategy');
@@ -1856,7 +1937,7 @@ var solveBtn = document.getElementById('solveBtn');
 solveBtn.addEventListener('click', function() { 
   resetBtn.setAttribute('disabled', true);
   fwdCheck.setAttribute('disabled', true);
-  if (solver.solve(solver.getHistory())) {
+  if (solver.solve()) {
     showOpCount() && showDuration(); 
   } else {
     alert('crap, failed to solve it! This should never happen');
@@ -1897,154 +1978,10 @@ module.exports = document.getElementById('solve');
 
 
 
-},{"../solver.js":11}],8:[function(require,module,exports){
-
-module.exports = {
-  Easy: [
-    [
-      [0,0,0,2,6,0,7,0,1],
-      [6,8,0,0,7,0,0,9,0],
-      [1,9,0,0,0,4,5,0,0],
-      [8,2,0,1,0,0,0,4,0],
-      [0,0,4,6,0,2,9,0,0],
-      [0,5,0,0,0,3,0,2,8],
-      [0,0,9,3,0,0,0,7,4],
-      [0,4,0,0,5,0,0,3,6],
-      [7,0,3,0,1,8,0,0,0]
-    ],
-    [
-      [1,0,0,4,8,9,0,0,6],
-      [7,3,0,0,0,0,0,4,0],
-      [0,0,0,0,0,1,2,9,5],
-      [0,0,7,1,2,0,6,0,0],
-      [5,0,0,7,0,3,0,0,8],
-      [0,0,6,0,9,5,7,0,0],
-      [9,1,4,6,0,0,0,0,0],
-      [0,2,0,0,0,0,0,3,7],
-      [8,0,0,5,1,2,0,0,4]
-    ]
-  ],
-  Medium: [
-    [
-      [0,2,0,6,0,8,0,0,0],
-      [5,8,0,0,0,9,7,0,0],
-      [0,0,0,0,4,0,0,0,0],
-      [3,7,0,0,0,0,5,0,0],
-      [6,0,0,0,0,0,0,0,4],
-      [0,0,8,0,0,0,0,1,3],
-      [0,0,0,0,2,0,0,0,0],
-      [0,0,9,8,0,0,0,3,6],
-      [0,0,0,3,0,6,0,9,0]
-    ],
-  ],
-  Hard: [
-    [
-      [0,0,0,6,0,0,4,0,0],
-      [7,0,0,0,0,3,6,0,0],
-      [0,0,0,0,9,1,0,8,0],
-      [0,0,0,0,0,0,0,0,0],
-      [0,5,0,1,8,0,0,0,3],
-      [0,0,0,3,0,6,0,4,5],
-      [0,4,0,2,0,0,0,6,0],
-      [9,0,3,0,0,0,0,0,0],
-      [0,2,0,0,0,0,1,0,0]
-    ],
-    [
-      [2,0,0,3,0,0,0,0,0],
-      [8,0,4,0,6,2,0,0,3],
-      [0,1,3,8,0,0,2,0,0],
-      [0,0,0,0,2,0,3,9,0],
-      [5,0,7,0,0,0,6,2,1],
-      [0,3,2,0,0,6,0,0,0],
-      [0,2,0,0,9,1,4,0,0],
-      [6,0,1,2,5,0,8,0,9],
-      [0,0,0,0,0,1,0,0,2]
-    ]
-  ],
-  Brutal: [
-    [
-      [0,2,0,0,0,0,0,0,0],
-      [0,0,0,6,0,0,0,0,3],
-      [0,7,4,0,8,0,0,0,0],
-      [0,0,0,0,0,3,0,0,2],
-      [0,8,0,0,4,0,0,1,0],
-      [6,0,0,5,0,0,0,0,0],
-      [0,0,0,0,1,0,7,8,0],
-      [5,0,0,0,0,9,0,0,0],
-      [0,0,0,0,0,0,0,4,0]
-    ]
-  ]
-};
-
-},{}],9:[function(require,module,exports){
-
-
-
-module.exports = {
-  init: function() {
-    var undef, startTime, endTime, ops = 0;
-
-    return {
-      getDuration: function() {
-        return endTime - startTime;
-      },
-
-      getOps: function() {
-        return ops;
-      },
-
-      start: function() {
-        startTime = startTime || new Date();
-        ops += 1;
-      },
-
-      end: function() {
-        endTime = new Date();
-      },
-
-      reset: function() {
-        startTime = undef;
-        endTime = undef;
-        ops = 0;
-      }
-
-    };
-  }
-
-};
-
-
-
-},{}],10:[function(require,module,exports){
-var R = require('ramda');
-
-
-module.exports = {
-
-  console: function(g) { 
-    console.log(g.toMatrix()); 
-  },
-  
-  html: function(g) {
-    var grid = document.getElementById('grid');
-    var htmlStr = R.reduce(function(acc, row) {
-      return acc += '<tr>' + 
-             R.foldl(function(acc, cell) {
-               return acc + '<td>' + (cell || '') + '</td>';
-             }, '', row) +
-             '</tr>';
-    }, '', g.toMatrix());
-    grid.innerHTML = htmlStr;
-  }
- 
-};
-
-
-
-},{"ramda":1}],11:[function(require,module,exports){
+},{"./solver.js":10}],10:[function(require,module,exports){
 var R = require('ramda');
 var Grid = require('./Grid.js');
-var History = require('./History');
+var DomainBoard = require('./DomainBoard.js');
 var strategy = require('./strategy.js');
 var renderers = require('./renderers.js');
 var instrument = require('./instrument.js').init();
@@ -2053,7 +1990,7 @@ var grid;
 var matrixClone;
 var render = renderers.console;
 var forwardCheck = false;
-var history;
+var domainBoard;
 
 function reset() {
   instrument.reset();
@@ -2065,44 +2002,17 @@ function useForwardChecking(bool) {
 }
 
 function load(g) {
-  history = new History();
   grid = g;
   matrixClone = R.map(R.clone, grid.matrix);
-  history.push(g);
+  if (forwardCheck) {
+    domainBoard = new DomainBoard(g);
+  }
   render(grid);
 }
 
-function forwardCheck(grid, cell) {
-  var value = R.car(cell.domain);
-  // get row, col, box
-  var related = grid.getUnboundRelatives(cell);
-  var fwdCheckGrid = R.curry(forwardCheck)(grid);
-
-  // iterate over cells and remove cell value from domains
-  var updated = R.each(function(c) { c.remove(value); }, related);
-
-  // if any domain.length becomes one, forwardCheck that cell
-  // if any domain.length becomes zero, backtrack--that means restoring prior state
-  return R.all(fwdCheckGrid, R.filter(R.where({domain: isBound}), updated)) &&
-         R.all(R.where({domain: isValid}), updated);
-};
-  
-function boundValue(acc, cell) {
-  return acc.concat(cell.domain); 
-}
-
-function constrain(grid, cell) {
-  var rowBound = R.foldl(boundValue, [], grid.getBoundByRow(cell.y));
-  var colBound = R.foldl(boundValue, [], grid.getBoundByColumn(cell.x));
-  var boxBound = R.foldl(boundValue, [], grid.getBoundByBox(cell));
-  
-  cell.constrain(rowBound).constrain(colBound).constrain(boxBound);
-  return cell.domain;
-};
-
-function solve(stack) {
-  var i, cell, domain, len;
-  g = stack.pop();
+function solve(g) {
+  var i, cell, domain;
+  g = g || grid;
 
   instrument.start();
   
@@ -2113,21 +2023,19 @@ function solve(stack) {
     return true;
   }
 
-  stack.push(g);
-  domain = constrain(g, cell);
-
+  domain = g.constrain(cell);
   i = 0;
-  len = domain.length;
-  while (i < len) {
-
+  while (i < domain.length) {
     g.update(cell, domain[i]); 
-    stack.push(g);
-    if (solve(stack)) {               
+    if (forwardCheck) {
+
+    }
+    if (solve(g)) {               
       return true;
     }
 
-    // backtrack    
-    g = stack.pop();
+    // mark cell as empty and backtrack    
+    g.update(cell, 0);
     i += 1;
   }
   return false;
@@ -2135,7 +2043,6 @@ function solve(stack) {
 
 
 module.exports = {
-  getHistory: function() { return history; },
   instrument: instrument,
   load: load,
   reset: reset,
@@ -2154,15 +2061,16 @@ module.exports = {
 };   
 
 
+ 
 
-},{"./Grid.js":3,"./History":4,"./instrument.js":9,"./renderers.js":10,"./strategy.js":12,"ramda":1}],12:[function(require,module,exports){
+},{"./DomainBoard.js":2,"./Grid.js":3,"./instrument.js":6,"./renderers.js":8,"./strategy.js":11,"ramda":1}],11:[function(require,module,exports){
 var R = require('ramda');
 var Grid = require('./Grid.js');
 
 var selectedKey = 'bruteforce';
 var algoMap = {
   bruteforce: function(g) {
-    return g.getFirstUnboundCell();
+    return g.findEmptyCell();
   },
   constrained: function(g) {
     return R.car(g.getMostConstrainedCells());
@@ -2180,4 +2088,4 @@ module.exports = {
 };
 
 
-},{"./Grid.js":3,"ramda":1}]},{},[5])
+},{"./Grid.js":3,"ramda":1}]},{},[4])

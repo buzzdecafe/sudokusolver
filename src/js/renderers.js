@@ -3,9 +3,7 @@ var R = require('ramda');
 
 module.exports = {
 
-  console: function(g) { 
-    console.log(g.toMatrix()); 
-  },
+  console: function(g) { console.log(g); },
   
   html: function(g) {
     var grid = document.getElementById('grid');
@@ -15,8 +13,8 @@ module.exports = {
                return acc + '<td>' + (cell || '') + '</td>';
              }, '', row) +
              '</tr>';
-    }, '', g.toMatrix());
-    grid.innerHTML = htmlStr;
+    }, '', g.matrix);
+     grid.innerHTML = htmlStr;
   }
  
 };
