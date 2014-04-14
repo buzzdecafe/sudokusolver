@@ -1,5 +1,5 @@
 var R = require('ramda');
-var iterator = require('./iterator');
+var makeIterator = require('./iterator');
 
 function makeSolver(isLeaf, isGoal, makeNextFn) {
   return function solve(candidate, sideEffects) {
@@ -8,7 +8,7 @@ function makeSolver(isLeaf, isGoal, makeNextFn) {
     sideEffects = sideEffects || R.alwaysTrue;
 
     if (isLeaf(candidate)) {
-      return isGoal(candidate) && sideEffects(candidate);
+      return isGoal(candidate) && (sideEffects(candidate) || true);
     }
 
     // the iterator returns a new candidate solution for each value in the 
@@ -22,4 +22,6 @@ function makeSolver(isLeaf, isGoal, makeNextFn) {
     
     return false; 
 }
+
+module.exports = makeSolver;
 
