@@ -261,7 +261,7 @@
             if (arr.length === Infinity) {
                 return arr.tail();
             }
-            return (arr.length > 1) ? slice(arr, 1) : null;
+            return (arr.length > 1) ? slice(arr, 1) : [];
         };
         aliasFor("tail").is("cdr");
 
@@ -815,6 +815,10 @@
             return foldr(function(acc, x) { return (contains(x, acc)) ? acc : prepend(x, acc); }, EMPTY, list);
         };
 
+        R.isSet = function(list) {
+            return uniq(list).length === list.length;
+        };
+
         // Returns a new list containing only one copy of each element in the original list, based upon the value
         // returned by applying the supplied predicate to two list elements.   Equality is strict here,  meaning
         // reference equality for objects and non-coercing equality for primitives.
@@ -1071,6 +1075,12 @@
             return partialCopy(function(key) {return !contains(key, names);}, obj);
         });
 
+        // Returns a new object that mixes in the own properties of two objects.
+        R.mixin = _(function(a, b) {
+          var mixed = pickAll(R.keys(a), a);
+          each(function(key) { mixed[key] = b[key]; }, R.keys(b));
+          return mixed;
+        });
 
         // Reports whether two functions have the same value for the specified property.  Useful as a curried predicate.
         R.eqProps = _(function(prop, obj1, obj2) {return obj1[prop] === obj2[prop];});
@@ -1280,7 +1290,7 @@
         // Determines the largest of a list of numbers (or elements that can be cast to numbers) using the supplied comparator
         R.maxWith = _(function(comparator, list) {
             if (!isArray(list) || !list.length) {
-                return undef;
+                return null;
             }
             var idx = 0, max = list[idx];
             while (++idx < list.length) {
@@ -1295,7 +1305,7 @@
         // Determines the smallest of a list of numbers (or elements that can be cast to numbers) using the supplied comparator
         R.minWith = _(function(comparator, list) {
             if (!isArray(list) || !list.length) {
-                return undef;
+                return null;
             }
             var idx = 0, max = list[idx];
             while (++idx < list.length) {
