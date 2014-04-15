@@ -109,12 +109,12 @@ module.exports = {
   getMostConstrainedCell: getMostConstrainedCell,
   getRow: getRow,
   getUnboundCell: getUnboundCell,
-  makeCandidate: makeCandidate,
-  makeNextFn: makeNextFn,
   isBound: isBound,
   isFullyBound: isFullyBound,
   isUnbound: isUnbound,
-  isValid, isValid
-  matrixToCells: matrixToCells,
+  isValid: isValid,
+  makeCandidate: makeCandidate,
+  makeNextFn: makeNextFn,
+  matrixToCells: matrixToCells
 };
 
