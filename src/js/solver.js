@@ -17,7 +17,9 @@ function makeSolver(isLeaf, isGoal, makeNextFn) {
     do {
       nextCandidate = iter.next();
       sideEffects(nextCandidate);
-      solve(nextCandidate);
+      if (solve(nextCandidate)) {
+        return true;
+      }
     } while(!nextCandidate.done);
     
     return false; 

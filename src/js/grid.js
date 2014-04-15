@@ -77,10 +77,11 @@ var getUnboundCell = R.find(isUnbound);
 
 var isFullyBound = R.all(isBound);
 
-
-var getMostConstrainedCell = R.find(R.sort(function(a, b) {
-  return a.domain.length - b.domain.length;
-}));
+var getMostConstrainedCell = function(cells) {
+  return R.car(R.sort(function(a, b) { 
+    return a.domain.length - b.domain.length; 
+  }, R.filter(isUnbound, cells)));
+}
 
 
 function isValid() {
