@@ -1,13 +1,14 @@
 var R = require('ramda');
+var Cell = require('./Cell');
 
 // a collection of functions for dealing with an array of variables (cells)
 // as though they were a 9x9 grid
 
 function matrixToCells(matrix) {
-  var dom = R.range(0, 9);
+  var dom = R.range(1, 10);
   return R.foldl.idx(function(acc, row, yIndex) {
     return acc.concat(R.map.idx(function(cell, xIndex) {
-      return { x: xIndex, y: yIndex, domain: (cell ? [cell] : dom) };
+      return new Cell(xIndex, yIndex, (cell ? [cell] : dom));
     }, row));
   }, [], matrix);
 }
@@ -32,13 +33,13 @@ function getBox(cell, cells) {
 }
 
 function cloneCells(cells) {
-  return map(function(c) {
+  return R.map(function(c) {
     return { x: c.x, y: c.y, domain: R.clone(c.domain) };
   }, cells);
 }
 
 function makeCandidate(candidate, cell, value) {
-  var nextCandidate = cloneCells(cells);
+  var nextCandidate = cloneCells(candidate);
   var cellIndex = R.findIndex(R.where({x: cell.x, y: cell.y}), nextCandidate);
   nextCandidate[cellIndex].domain = [value];
   return nextCandidate;
@@ -48,7 +49,7 @@ function makeCandidate(candidate, cell, value) {
 // and may or may not be a satisfying assignment.
 function makeNextFn(candidate) {
   var index = 0;
-  var cell = getNextUnboundCell(candidate);
+  var cell = getUnboundCell(candidate);
 
   return function next() {
     var nextCandidate; 
@@ -83,24 +84,29 @@ var getMostConstrainedCell = function(cells) {
   }, R.filter(isUnbound, cells)));
 }
 
-
-function isValid() {
-    
-  function validate(arr) {
-    var nums = R.filter(function(n) { return n !== 0; }, arr);
-    return R.uniq(nums).length === nums.length;
+function satisfies(arr) {
+  if (!isFullyBound(arr)) {
+    return false;
   }
-    
-  var rows = this.matrix;
-  var cols = R.map(this.colToArray.bind(this), R.range(0, 9));
-  var boxes = R.map(this.boxToArray.bind(this), R.foldl(function(acc, val) {
-      var cell = {
-        x: Math.floor(val/3) * 3,
-        y: ((val % 3) * 3)
-      };
-      return acc.concat(cell);
-    }, [], R.range(0, 9)));
-    return R.all(validate, rows) && R.all(validate, cols) && R.all(validate, boxes);
+  var bindings = R.foldl(function(acc, c) { return acc.concat(c.domain); }, [], arr);
+  return (bindings.length === arr.length) && 
+    R.difference(bindings, R.range(1, 10)).length === 0; 
+}
+
+function isSolved(cells) {
+
+  function toCoords(n) {
+    return {
+      x: (n % 3) * 3,
+      y: Math.floor(n/3)
+    };
+  }
+  var size = R.range(0, 9);
+  var rows = R.map(function(n) { return getRow({y: n}, cells); }, size);
+  var cols = R.map(function(n) { return getColumn({x: n}, cells); }, size);
+  var boxes = R.map(function(n) { return getBox(toCoords(n), cells); }, size);
+
+  return R.all(satisfies, rows) && R.all(satisfies, cols) && R.all(satisfies, boxes);
 }
 
 
@@ -113,7 +119,7 @@ module.exports = {
   isBound: isBound,
   isFullyBound: isFullyBound,
   isUnbound: isUnbound,
-  isValid: isValid,
+  isSolved: isSolved,
   makeCandidate: makeCandidate,
   makeNextFn: makeNextFn,
   matrixToCells: matrixToCells

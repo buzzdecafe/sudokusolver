@@ -1,6 +1,7 @@
 // test Grid
 var R = require('ramda');
 var g = require('../src/js/grid.js');
+var Cell = require('../src/js/Cell.js');
 var mx = require('./data/matrices.js');
 var cellData = require('./data/cellData');
 
@@ -25,7 +26,7 @@ describe("grid functions ::", function() {
     expect(typeof g.isBound).toBe('function');
     expect(typeof g.isFullyBound).toBe('function');
     expect(typeof g.isUnbound).toBe('function');
-    expect(typeof g.isValid).toBe('function');
+    expect(typeof g.isSolved).toBe('function');
     expect(typeof g.makeCandidate).toBe('function');
     expect(typeof g.makeNextFn).toBe('function');
     expect(typeof g.matrixToCells).toBe('function');
@@ -131,27 +132,60 @@ describe("grid functions ::", function() {
   });
 
   
-  describe("isValid ::", function() {
+  describe("isSolved ::", function() {
     it("tests if a cells array is a satisfying assignment", function() {
-
+      var solvedGrid = g.matrixToCells(mx.solved);
+      var validUnsolved = g.matrixToCells(mx.valid);
+      var invalidUnsolved = g.matrixToCells(mx.badRow);
+      expect(g.isFullyBound(solvedGrid)).toBe(true);
+      expect(g.isSolved(solvedGrid)).toBe(true); 
+      expect(g.isSolved(validUnsolved)).toBe(false); 
+      expect(g.isSolved(invalidUnsolved)).toBe(false); 
     });
   });
 
   describe("makeCandidate ::", function() {
     it("clones the input cells array and binds the specified cell to the specified value", function() {
-
+      var testIdx = 10;
+      var candidate = g.makeCandidate(cells, cells[testIdx], 8);
+      expect(candidate[testIdx].domain).toEqual([8]);
+      expect(candidate).not.toBe(cells);
+      R.each.idx(function(cell, idx) {
+        expect(cell).not.toBe(cells[idx]);
+        if (idx === testIdx) {
+          expect(cell).not.toEqual(cells[idx]);
+        } else {
+          expect(cell).toEqual(cells[idx]);
+        }
+      }, candidate);
     });
   });
 
   describe("makeNextFn ::", function() {
     it("returns the `next` function to use when iterating over a cell's domain generating candidates", function() {
+      var nextFn = g.makeNextFn(cells);
+      expect(typeof nextFn).toBe('function');
+      expect(typeof nextFn()).toBe('object');
 
     });
   });
 
   describe("matrxiToCells ::", function() {
-    it("converts a 2D numeric grid to a flat array of Cell objects", function() {
+    var matrix = mx.valid;
+    var cs = g.matrixToCells(matrix);
 
+    it("converts a 2D numeric grid to a flat array of Cell objects", function() {
+      function isCell(obj) { return obj instanceof Cell; }
+      expect(cs instanceof Array).toBe(true);
+      expect(cs.length).toBe(81);
+      expect(R.all(isCell, cs)).toBe(true);
+    });
+
+    it("binds any cells that have non-zero values in the matrix", function() {
+      var boundIndices = R.foldl.idx(function(acc, c, idx) { return g.isBound(c) ? acc.concat(idx) : acc; }, [], cs);
+      var unboundIndices = R.difference(R.range(0,81), boundIndices); 
+      expect(R.all(function(i) { return g.isBound(cs[i]); }, boundIndices));
+      expect(R.all(function(i) { return !g.isBound(cs[i]); }, unboundIndices));
     });
   });
 
