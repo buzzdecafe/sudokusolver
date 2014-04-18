@@ -32,11 +32,7 @@ function getBox(cell, cells) {
   }, cells);
 }
 
-function cloneCells(cells) {
-  return R.map(function(c) {
-    return { x: c.x, y: c.y, domain: R.clone(c.domain) };
-  }, cells);
-}
+var cloneCells = R.map(function(c) { return Cell.clone(c); });
 
 function makeCandidate(candidate, cell, value) {
   var nextCandidate = cloneCells(candidate);
@@ -109,8 +105,37 @@ function isSolved(cells) {
   return R.all(satisfies, rows) && R.all(satisfies, cols) && R.all(satisfies, boxes);
 }
 
+// remove any bound values from neighbor cells' domains
+function constrain(cell, cells) {
+  if (isBound(cell) {
+    return cell;
+  }
+  var cell2 = Cell.clone(cell);
+  var rowBound = R.filter(isBound, getRow(cell2, cells)); 
+  var colBound = R.filter(isBound, getColumn(cell2, cells)); 
+  var boxBound = R.filter(isBound, getBox(cell2, cells)); 
+
+  cell2.domain = R.difference(cell2.domain, rowBound.concat(colBound).concat(boxBound));
+  return (cell2.domain.length > 0) ? cell2 : null;
+}
+
+function forwardCheck(cell, cells) {
+  if (!isBound(cell)) {
+    return;
+  }
+
+  var cell2 = Cell.clone(cell);
+  var rowUnbound = R.filter(isUnbound, getRow(cell2, cells)); 
+  var colUnbound = R.filter(isUnbound, getColumn(cell2, cells)); 
+  var boxUnbound = R.filter(isUnbound, getBox(cell2, cells)); 
+
+  // constrain the unbound neighbors of the newly-bound cell. If any cell
+  // becomes bound as a result, recurse on that cell.
+}
+
 
 module.exports = {
+  constrain: constrain,
   getBox: getBox,
   getColumn: getColumn,
   getMostConstrainedCell: getMostConstrainedCell,

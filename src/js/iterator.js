@@ -1,11 +1,11 @@
 var R = require('ramda');
 
-function makeIterator = function(nextFn) {
+function makeIterator(nextFn) {
   return function iterator() {
    
-   return {
-     next: nextFn
-   };
+    return {
+      next: nextFn
+    };
   };
 }
 

@@ -13,9 +13,9 @@ function makeSolver(isLeaf, isGoal, makeNextFn) {
 
     // the iterator returns a new candidate solution for each value in the 
     // domain of the selected cell.
-    iter = makeIterator(makeNextFn(candidate));
+    iter = makeIterator(makeNextFn(candidate))();
     do {
-      nextCandidate = iter.next();
+      nextCandidate = iter.next().value;
       sideEffects(nextCandidate);
       if (solve(nextCandidate)) {
         return true;
@@ -23,6 +23,7 @@ function makeSolver(isLeaf, isGoal, makeNextFn) {
     } while(!nextCandidate.done);
     
     return false; 
+  };
 }
 
 module.exports = makeSolver;
