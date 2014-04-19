@@ -1496,191 +1496,21 @@
 }));
 
 },{}],2:[function(require,module,exports){
-var Grid = require('./Grid.js');
-var R = require('ramda');
+var clone = require('ramda').clone;
 
-function DomainBoard(grid) {
-  this.matrix = R.map.idx(function(row, yIndex) {
-    return R.map.idx(function(cell, xindex) {
-      return cell ? [cell] : grid.constrain({x: xIndex, y: yIndex});
-    }, row);
-  }, grid.matrix);
-  this.history = [this.store()];
+function Cell(x, y, domain) {
+  this.x = x;
+  this.y = y;
+  this.domain = domain;
+}
+
+Cell.clone = function(cell) {
+  return new Cell(cell.x, cell.y, clone(cell.domain));
 };
 
-DomainBoard.prototype = Grid.prototype;
+module.exports = Cell;
 
-DomainBoard.prototype.constructor = DomainBoard;
-
-DomainBoard.prototype.updateDomain = function(value, arr) {
-  return R.map(function(dom) {
-    var i = dom.indexOf(value);
-    return (i > -1) ? dom.splice(i, 1) : dom;
-  }, arr);
-};
-
-DomainBoard.prototype.propagate = function(cell, value) {
-  var row = this.matrix[cell.y];
-  var col = this.colToArray(cell.x);
-  var box = this.boxToArray(cell);
-  var ok = false;
-  var hasDomain = function(a) { return a.length > 0; }; 
-  // push onto the stack
-  this.store();
-  
-  ok = all(hasDomain, this.updateDomain(value, row)) &&
-       all(hasDomain, this.updateDomain(value, col)) &&
-       all(hasDomain, this.updateDomain(value, box));
-
-  // if any empty domains, revert and return false;
-  if (ok) {
-    return true;
-  } else {
-    this.revert();
-    return false;
-  }
-};
-
-DomainBoard.prototype.store = function() {
-  return JSON.stringify(this.matrix);
-};
-
-DomainBoard.prototype.revert = function() {
-  this.matrix = JSON.parse(this.history.pop()); 
-};
-
-module.exports = DomainBoard;
-
-
-},{"./Grid.js":3,"ramda":1}],3:[function(require,module,exports){
-var R = require('ramda');
-var EMPTY = 0;
-
-function Grid(m) {
-  if (!(this instanceof Grid)) {
-    return new Grid(m);
-  }
-  this.matrix = m;
-};
-
-Grid.prototype = {
-  constructor: Grid,
-
-  findEmptyCell: function() {
-    var cell = {};
-    cell.y = R.findIndex(function(r) { return R.contains(EMPTY, r); }, this.matrix);
-    if (cell.y !== null) {
-      cell.x = R.findIndex(function(c) { return c === EMPTY; }, this.matrix[cell.y]);
-    }
-    return (cell.y !== null && cell.x !== null) ? cell : false;
-  },
-
-  getAllEmptyCells: function() {
-    return R.foldl.idx(function(acc, row, yIndex) {
-      return acc.concat(R.foldl.idx(function(innerAcc, value, xIndex) {
-        if (value === 0) {
-          innerAcc.push({x: xIndex, y: yIndex});
-        }
-        return innerAcc; 
-      }, [], row));
-    }, [], this.matrix);
-  },
-
-  getCellsByDomain: function() {
-    var grid = this;
-    return R.foldl(function(acc, cell) {
-      var key = grid.constrain(cell).length;
-      acc[key] = acc[key] || [];
-      acc[key].push(cell);
-      return acc;
-    }, {}, this.getAllEmptyCells());
-  },
-
-  getMostConstrainedCells: function() {
-    var counts = this.getCellsByDomain();
-    return counts[Math.min.apply(Math, R.keys(counts))];
-  },
-
-  constrain: function(cell) {
-    var rowWise = R.difference(R.range(1,10), this.matrix[cell.y]);
-    var colWise = R.difference(rowWise, this.colToArray(cell.x));
-    return R.difference(colWise, this.boxToArray(cell));
-  },
-
-  update: function(cell, value) {
-    this.matrix[cell.y][cell.x] = value;
-  },
-
-  colToArray: function(x) {
-    return R.pluck(x, this.matrix);
-  },
-
-  getBox: function(cell) {
-    return {
-      x: Math.floor(cell.x/3) * 3,
-      y: Math.floor(cell.y/3) * 3
-    };
-  },
-
-  boxToArray: function(cell) {
-    var box = this.getBox(cell); 
-    return R.foldl(function(acc, row) {  
-      return acc.concat(R.map(R.I, row.slice(box.x, box.x + 3)));
-    }, [], this.matrix.slice(box.y, box.y + 3));
-  },
-
-  isValid: function() {
-    
-    function validate(arr) {
-      var nums = R.filter(function(n) { return n !== 0; }, arr);
-      return R.uniq(nums).length === nums.length;
-    }
-    
-    var rows = this.matrix;
-    var cols = R.map(this.colToArray.bind(this), R.range(0, 9));
-    var boxes = R.map(this.boxToArray.bind(this), R.foldl(function(acc, val) {
-        var cell = {
-          x: Math.floor(val/3) * 3,
-          y: ((val % 3) * 3)
-        };
-        return acc.concat(cell);
-      }, [], R.range(0, 9)));
-    return R.all(validate, rows) && R.all(validate, cols) && R.all(validate, boxes);
-  },
-
-  clone: function() {
-    return new Grid(R.map(R.clone, this.matrix));
-  }
-
-};
-
-module.exports = Grid;
-
-
-
-},{"ramda":1}],4:[function(require,module,exports){
-var solver = require('./solver.js');
-
-solver.setRenderer('html');
-
-// DOM crap
-var loadView = require('./loadView.js');
-var solveView = require('./solveView.js');
-
-document.addEventListener('gridLoaded', function(e) {
-  loadView.style.display = 'none';
-  solveView.style.display = 'block';
-  e.detail && e.detail.callback && e.detail.callback();
-});
-
-document.addEventListener('loadAnother', function(e) {
-  loadView.style.display = 'block';
-  solveView.style.display = 'none';
-  e.detail && e.detail.callback && e.detail.callback();
-});
-
-
-},{"./loadView.js":7,"./solveView.js":9,"./solver.js":10}],5:[function(require,module,exports){
+},{"ramda":1}],3:[function(require,module,exports){
 
 module.exports = {
   Easy: [
@@ -1759,343 +1589,225 @@ module.exports = {
   ]
 };
 
-},{}],6:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
+var R = require('ramda');
+var g = require('./grid');
+var getSolver = require('./solver');
+var matrix = require('./data/grids');
+
+
+var solver = getSolver(g.isFullyBound, g.isSolved, g.makeNextFn);
+
+var print = function(cells) {
+  console.log('.-----------+-----------+-----------+'); 
+  R.each(function(n) {
+    console.log('[ ' + R.map(function(c) { return g.isBound(c) ? c.domain[0] : ' '; }, g.getRow({y: n}, cells)).join(' | ') + ' ]');
+    console.log('[-----------+-----------+-----------]');
+  }, R.range(0,9));
+};
+
+var cells = g.matrixToCells(matrix.Easy[0]);
+print(cells);
+solver(cells, print);
 
 
 
-module.exports = {
-  init: function() {
-    var undef, startTime, endTime, ops = 0;
+},{"./data/grids":3,"./grid":5,"./solver":7,"ramda":1}],5:[function(require,module,exports){
+var R = require('ramda');
+var Cell = require('./Cell');
 
+// a collection of functions for dealing with an array of variables (cells)
+// as though they were a 9x9 grid
+
+function matrixToCells(matrix) {
+  var dom = R.range(1, 10);
+  return R.foldl.idx(function(acc, row, yIndex) {
+    return acc.concat(R.map.idx(function(cell, xIndex) {
+      return new Cell(xIndex, yIndex, (cell ? [cell] : dom));
+    }, row));
+  }, [], matrix);
+}
+
+function getRow(cell, cells) {
+  return R.filter(function(c) { return c.y === cell.y; }, cells);
+}
+
+function getColumn(cell, cells) {
+  return R.filter(function(c) { return c.x === cell.x; }, cells);
+}
+
+function getBox(cell, cells) {
+  var boxXY = {
+    x: Math.floor(cell.x/3) * 3,
+    y: Math.floor(cell.y/3) * 3
+  };
+
+  return R.filter(function(c) {
+    return Math.floor(c.x/3) * 3 === boxXY.x && Math.floor(c.y/3) * 3 === boxXY.y; 
+  }, cells);
+}
+
+var cloneCells = R.map(function(c) { return Cell.clone(c); });
+
+function makeCandidate(candidate, cell, value) {
+  var nextCandidate = cloneCells(candidate);
+  var cellIndex = R.findIndex(R.where({x: cell.x, y: cell.y}), nextCandidate);
+  nextCandidate[cellIndex].domain = [value];
+  return nextCandidate;
+}
+
+// a candidate is an array of cells that may or may not be all bound,
+// and may or may not be a satisfying assignment.
+function makeNextFn(candidate) {
+  var index = 0;
+  var cell = getUnboundCell(candidate);
+
+  return function next() {
+    var nextCandidate; 
+    if (index < cell.domain.length) {
+      nextCandidate = makeCandidate(candidate, cell, cell.domain[index]);
+      index++;
+      return {
+        value: nextCandidate,
+        done: false
+      };
+    }
+    return { done: true };
+  };
+
+}
+
+function isBound(cell) {
+  return cell.domain.length === 1;
+}
+
+function isUnbound(cell) {
+  return cell.domain.length > 1;
+}
+
+var getUnboundCell = R.find(isUnbound);
+
+var isFullyBound = R.all(isBound);
+
+var getMostConstrainedCell = function(cells) {
+  return R.car(R.sort(function(a, b) { 
+    return a.domain.length - b.domain.length; 
+  }, R.filter(isUnbound, cells)));
+}
+
+function satisfies(arr) {
+  if (!isFullyBound(arr)) {
+    return false;
+  }
+  var bindings = R.foldl(function(acc, c) { return acc.concat(c.domain); }, [], arr);
+  return (bindings.length === arr.length) && 
+    R.difference(bindings, R.range(1, 10)).length === 0; 
+}
+
+function isSolved(cells) {
+
+  function toCoords(n) {
     return {
-      getDuration: function() {
-        return endTime - startTime;
-      },
-
-      getOps: function() {
-        return ops;
-      },
-
-      start: function() {
-        startTime = startTime || new Date();
-        ops += 1;
-      },
-
-      end: function() {
-        endTime = new Date();
-      },
-
-      reset: function() {
-        startTime = undef;
-        endTime = undef;
-        ops = 0;
-      }
-
+      x: (n % 3) * 3,
+      y: Math.floor(n/3)
     };
   }
+  var size = R.range(0, 9);
+  var rows = R.map(function(n) { return getRow({y: n}, cells); }, size);
+  var cols = R.map(function(n) { return getColumn({x: n}, cells); }, size);
+  var boxes = R.map(function(n) { return getBox(toCoords(n), cells); }, size);
 
-};
-
-
-
-},{}],7:[function(require,module,exports){
-var R = require('ramda');
-var Grid = require('./Grid.js');
-var solver = require('./solver.js');
-var gridData = require('./grids.js');
-
-// convert table values to js 2d-matrix
-function htmlToMatrix(tbl) {
-  var trs = tbl.getElementsByTagName('tr');
-  return R.map(function(tr) {
-    var inputs = tr.getElementsByTagName('input');
-    return R.map(function(input) {
-      return +input.value;
-    }, inputs);
-  }, trs);
+  return R.all(satisfies, rows) && R.all(satisfies, cols) && R.all(satisfies, boxes);
 }
 
-var message = document.getElementById('message');
+// remove any bound values from neighbor cells' domains
+function constrain(cell, cells) {
+  var cell2 = Cell.clone(cell);
+  if (isBound(cell)) {
+    return cell2;
+  }
+  var rowBound = R.filter(isBound, getRow(cell2, cells)); 
+  var colBound = R.filter(isBound, getColumn(cell2, cells)); 
+  var boxBound = R.filter(isBound, getBox(cell2, cells)); 
 
-// maybe delegate these. for now, this is good enough:
-var loadCells = document.getElementsByClassName('loadCell');
-var j = 0;
-while (j < loadCells.length) {
-  loadCells[j].addEventListener('keydown', function(e) {
-    if (this.value.length && !this.value.match(/^\d$/)) {
-      this.value = '';
-      e.stopPropagation();
-    } else {
-      message.style.display = 'none';
-      message.textContent = ''
-    }
-  });
-  j++;
+  cell2.domain = R.difference(cell2.domain, rowBound.concat(colBound).concat(boxBound));
+  return (cell2.domain.length > 0) ? cell2 : null;
 }
 
-function broadcast() {
-  document.dispatchEvent(new document.defaultView.CustomEvent('gridLoaded', 
-        { detail: {
-            callback: function() {
-              var i = 0;
-              while (i < loadCells.length) {
-                loadCells[i].value = '';
-                i += 1;
-              }
-            }
-          }
-        })
-  );
-}
-
-var loadBtn = document.getElementById('loadBtn');
-loadBtn.addEventListener('click', function() {
-  // convert html to matrix
-  var matrix = htmlToMatrix(document.getElementById('loadTbl'));
-  var testGrid = new Grid(matrix);
-  if (testGrid.isValid(matrix)) {
-    // if grid is valid, load the grid, hide load view and show solve view
-    solver.load(testGrid);
-    broadcast();
-  } else {
-    // else warn and stay here
-    message.style.display = 'block';
-    message.textContent = 'The grid is not valid';
-  }
-});
-
-var gridList = document.getElementById('gridList');
-var frag = document.createDocumentFragment();
-R.each(function(key) {
-  var li = document.createElement('li');
-  var subtitle = document.createElement('span');
-  var puzzleList = document.createElement('ul');
-  
-  subtitle.textContent = key;
-  li.appendChild(subtitle);
-  li.appendChild(puzzleList);
-
-  // 'cuz i need the index and haven't impl'd each.idx yet
-  for (var i = 0; i < gridData[key].length; i++) {
-    var puzzLi = document.createElement('li');
-    var wrap = document.createElement('span');
-    wrap.className = 'puzzle';
-    wrap.textContent = key + ' puzzle ' + i;
-    wrap.setAttribute('data-puzzle', key + '_' + i);
-    wrap.addEventListener('click', function(e) {
-      var puzz = this.getAttribute('data-puzzle').split('_');
-      solver.load(new Grid(gridData[puzz[0]][puzz[1]]));
-      broadcast();
-    });
-    puzzLi.appendChild(wrap);
-    puzzleList.appendChild(puzzLi);
-  }
-  
-  frag.appendChild(li);
-}, R.keys(gridData));
-gridList.appendChild(frag);
-
-module.exports = document.getElementById('load');
-
-
-
-},{"./Grid.js":3,"./grids.js":5,"./solver.js":10,"ramda":1}],8:[function(require,module,exports){
-var R = require('ramda');
-
-
-module.exports = {
-
-  console: function(g) { console.log(g); },
-  
-  html: function(g) {
-    var grid = document.getElementById('grid');
-    var htmlStr = R.reduce(function(acc, row) {
-      return acc += '<tr>' + 
-             R.foldl(function(acc, cell) {
-               return acc + '<td>' + (cell || '') + '</td>';
-             }, '', row) +
-             '</tr>';
-    }, '', g.matrix);
-     grid.innerHTML = htmlStr;
-  }
- 
-};
-
-
-
-},{"ramda":1}],9:[function(require,module,exports){
-var solver = require('./solver.js');
-
-// attach to DOM
-var fwdCheck = document.getElementById('fwdcheck');
-fwdCheck.addEventListener('click', function(e) {
-  solver.enableForwardChecking(this.value === '1');
-});
-
-var radios = document.getElementsByName('strategy');
-var i = 0;
-while (i < radios.length) {
-  radios[i].addEventListener('change', function(e) {
-    if (this.checked) {
-      solver.strategy.set(this.value);
-    }
-  });
-  i++;
-}
-
-var solveBtn = document.getElementById('solveBtn');
-solveBtn.addEventListener('click', function() { 
-  resetBtn.setAttribute('disabled', true);
-  fwdCheck.setAttribute('disabled', true);
-  if (solver.solve()) {
-    showOpCount() && showDuration(); 
-  } else {
-    alert('crap, failed to solve it! This should never happen');
-  }
-  resetBtn.removeAttribute('disabled');
-  this.setAttribute('disabled', true);
-});
-
-var resetBtn = document.getElementById('resetBtn');
-resetBtn.addEventListener('click', function() {
-  solver.reset();
-  showOpCount(' ');
-  showDuration(' ');
-  solveBtn.removeAttribute('disabled');
-  fwdCheck.removeAttribute('disabled');
-});
-
-var opCount = document.getElementById('opCount');
-var showOpCount = function(s) {
-  opCount.textContent = s || solver.instrument.getOps();
-  return true;
-};
-
-var duration = document.getElementById('duration');
-var showDuration = function(s) {
-  duration.textContent = s || solver.instrument.getDuration();
-  return true;
-};
-
-document.getElementById('anotherBtn').addEventListener('click', function() {
-  var evt = new document.defaultView.CustomEvent('loadAnother');
-  document.dispatchEvent(evt);
-});
-
-
-module.exports = document.getElementById('solve');
-
-
-
-
-},{"./solver.js":10}],10:[function(require,module,exports){
-var R = require('ramda');
-var Grid = require('./Grid.js');
-var DomainBoard = require('./DomainBoard.js');
-var strategy = require('./strategy.js');
-var renderers = require('./renderers.js');
-var instrument = require('./instrument.js').init();
-
-var grid;
-var matrixClone;
-var render = renderers.console;
-var forwardCheck = false;
-var domainBoard;
-
-function reset() {
-  instrument.reset();
-  load(new Grid(matrixClone));
-}
-
-function useForwardChecking(bool) {
-  forwardCheck = bool;
-}
-
-function load(g) {
-  grid = g;
-  matrixClone = R.map(R.clone, grid.matrix);
-  if (forwardCheck) {
-    domainBoard = new DomainBoard(g);
-  }
-  render(grid);
-}
-
-function solve(g) {
-  var i, cell, domain;
-  g = g || grid;
-
-  instrument.start();
-  
-  cell = strategy.get()(g);
-  if (!cell) {
-    render(g);
-    instrument.end();
-    return true;
+function forwardCheck(cell, cells) {
+  if (!isBound(cell)) {
+    return;
   }
 
-  domain = g.constrain(cell);
-  i = 0;
-  while (i < domain.length) {
-    g.update(cell, domain[i]); 
-    if (forwardCheck) {
+  var cell2 = Cell.clone(cell);
+  var rowUnbound = R.filter(isUnbound, getRow(cell2, cells)); 
+  var colUnbound = R.filter(isUnbound, getColumn(cell2, cells)); 
+  var boxUnbound = R.filter(isUnbound, getBox(cell2, cells)); 
 
-    }
-    if (solve(g)) {               
-      return true;
-    }
-
-    // mark cell as empty and backtrack    
-    g.update(cell, 0);
-    i += 1;
-  }
-  return false;
+  // constrain the unbound neighbors of the newly-bound cell. If any cell
+  // becomes bound as a result, recurse on that cell.
 }
 
 
 module.exports = {
-  instrument: instrument,
-  load: load,
-  reset: reset,
-  setRenderer: function(fn) { 
-    if (typeof fn === 'function') {
-      render = fn;
-    } else if (typeof fn === 'string') {
-      render = renderers[fn]; 
-    } else {
-      render = renderers.console;
-    }
-  },
-  solve: solve,
-  strategy: strategy,
-  useForwardChecking: useForwardChecking
-};   
+  constrain: constrain,
+  getBox: getBox,
+  getColumn: getColumn,
+  getMostConstrainedCell: getMostConstrainedCell,
+  getRow: getRow,
+  getUnboundCell: getUnboundCell,
+  isBound: isBound,
+  isFullyBound: isFullyBound,
+  isUnbound: isUnbound,
+  isSolved: isSolved,
+  makeCandidate: makeCandidate,
+  makeNextFn: makeNextFn,
+  matrixToCells: matrixToCells
+};
 
 
- 
-
-},{"./DomainBoard.js":2,"./Grid.js":3,"./instrument.js":6,"./renderers.js":8,"./strategy.js":11,"ramda":1}],11:[function(require,module,exports){
+},{"./Cell":2,"ramda":1}],6:[function(require,module,exports){
 var R = require('ramda');
-var Grid = require('./Grid.js');
 
-var selectedKey = 'bruteforce';
-var algoMap = {
-  bruteforce: function(g) {
-    return g.findEmptyCell();
-  },
-  constrained: function(g) {
-    return R.car(g.getMostConstrainedCells());
-  }
-};
+function makeIterator(nextFn) {
+  return {
+    next: nextFn
+  };
+}
+
+module.exports = makeIterator;
 
 
-module.exports = {
-  get: function() {
-    return algoMap[selectedKey];
-  },
-  set: function(type) {
-    selectedKey = type;
-  }
-};
+},{"ramda":1}],7:[function(require,module,exports){
+var R = require('ramda');
+var makeIterator = require('./iterator');
+
+function makeSolver(isLeaf, isGoal, makeNextFn) {
+  return function solve(candidate, sideEffects) {
+    var iter;
+    var nextCandidate;
+    sideEffects = sideEffects || R.alwaysTrue;
+
+    if (isLeaf(candidate)) {
+      return isGoal(candidate) && (sideEffects(candidate) || true);
+    }
+
+    // the iterator returns a new candidate solution for each value in the 
+    // domain of the selected cell.
+    iter = makeIterator(makeNextFn(candidate));
+    do {
+      nextCandidate = iter.next().value;
+      sideEffects(nextCandidate);
+      if (solve(nextCandidate)) {
+        return true;
+      }
+    } while(!nextCandidate.done);
+    
+    return false; 
+  };
+}
+
+module.exports = makeSolver;
 
 
-},{"./Grid.js":3,"ramda":1}]},{},[4])
+},{"./iterator":6,"ramda":1}]},{},[4])

@@ -1,11 +1,8 @@
 var R = require('ramda');
 
 function makeIterator(nextFn) {
-  return function iterator() {
-   
-    return {
-      next: nextFn
-    };
+  return {
+    next: nextFn
   };
 }
 

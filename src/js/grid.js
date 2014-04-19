@@ -107,17 +107,23 @@ function isSolved(cells) {
 
 // remove any bound values from neighbor cells' domains
 function constrain(cell, cells) {
-  if (isBound(cell) {
-    return cell;
-  }
   var cell2 = Cell.clone(cell);
-  var rowBound = R.filter(isBound, getRow(cell2, cells)); 
-  var colBound = R.filter(isBound, getColumn(cell2, cells)); 
-  var boxBound = R.filter(isBound, getBox(cell2, cells)); 
+  function mergeDomain(acc, cell) {
+    return acc.concat(cell.domain);
+  }
+  if (isBound(cell)) {
+    return cell2;
+  }
+  var rowBound = R.foldl(mergeDomain, [], R.filter(isBound, getRow(cell, cells))); 
+  var colBound = R.foldl(mergeDomain, [], R.filter(isBound, getColumn(cell, cells))); 
+  var boxBound = R.foldl(mergeDomain, [], R.filter(isBound, getBox(cell, cells))); 
 
-  cell2.domain = R.difference(cell2.domain, rowBound.concat(colBound).concat(boxBound));
+  cell2.domain = R.difference(cell.domain, rowBound.concat(colBound).concat(boxBound));
   return (cell2.domain.length > 0) ? cell2 : null;
 }
+
+var constrainAll = R.map.idx(function(c, i, ls) { return constrain(c, ls); });
+
 
 function forwardCheck(cell, cells) {
   if (!isBound(cell)) {
@@ -136,6 +142,7 @@ function forwardCheck(cell, cells) {
 
 module.exports = {
   constrain: constrain,
+  constrainAll: constrainAll,
   getBox: getBox,
   getColumn: getColumn,
   getMostConstrainedCell: getMostConstrainedCell,

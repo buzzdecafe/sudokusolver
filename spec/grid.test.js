@@ -189,6 +189,21 @@ describe("grid functions ::", function() {
     });
   });
 
+  describe("constrain ::", function() {
+    it("reduces the domain of a given cell by eliminating bound values in its neighbors", function() {
+      var cell = g.constrain(cells[30], cells);
+      expect(cell).not.toBe(cells[30]);
+      expect(cells[30].domain).toEqual([1,2,3,4,5,6,7,8,9]);
+      expect(cell.domain).toEqual([1,2,4,5,7,8,9]);
+    });
+  });
+
+  describe("constrainAll ::", function() {
+    it("constrains the domains of all cells", function() {
+      
+    });
+  });
+
 });
 
 

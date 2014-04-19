@@ -12,6 +12,11 @@ gulp.task('clean', function() {
     .pipe(clean());
 });
 
+gulp.task('hint', function() {
+  gulp.src('src/js/**/*')
+    .pipe(jshint());
+});
+
 gulp.task('test', function() {
   gulp.src('src/js/*')
     .pipe(jshint());                
@@ -20,7 +25,7 @@ gulp.task('test', function() {
 });
 
 gulp.task('scripts', function() {
-  gulp.src('src/js/run.js')
+  gulp.src('src/js/run.node.js')
     .pipe(browserify())
     .pipe(concat('app.js'))
     .pipe(gulp.dest('build/js'))

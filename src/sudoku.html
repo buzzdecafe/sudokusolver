@@ -1,6 +1,7 @@
 <!doctype html>
 <html>
 <head>
+<meta charset="utf-8" />
 <title>Sudoku solver</title>
 <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -11,12 +12,15 @@
   <table id="grid" class="sgrid"></table>
   <div id="check">
     <h3>Optimization Strategy:</h3>
-    <input type="checkbox" id="fwdcheck" name="fwdcheck" value="1" /> <label for="fwdcheck">Use forward-checking</label>
+    <input type="checkbox" id="fwdcheck" name="fwdcheck" value="1" /> 
+    <label for="fwdcheck">Use forward-checking</label>
   </div>
   <div id="algochooser">
     <h3>Cell Selection Strategy:</h3>
-    <input type="radio" id="strategy_0" name="strategy" value="bruteforce" checked /> <label for="strategy_0">Brute force (by empty cells in order, top to bottom)</label><br/>
-    <input type="radio" id="strategy_1" name="strategy" value="constrained" /> <label for="strategy_0">By most constrained cell</label>
+    <input type="radio" id="strategy_0" name="strategy" value="bruteforce" checked /> 
+    <label for="strategy_0">Brute force (by empty cells in order, top to bottom)</label><br/>
+    <input type="radio" id="strategy_1" name="strategy" value="constrained" /> 
+    <label for="strategy_0">By most constrained cell</label>
   </div>
   <button id="solveBtn">Solve</button>
   <button id="resetBtn" disabled="true">Reset</button>
@@ -27,8 +31,8 @@
   <div>
     <button id="anotherBtn">Load another grid</button>
   </div>
-
 </div>
+
 
 <div id="load">
   <table id="loadTbl" class="sgrid">
