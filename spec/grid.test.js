@@ -150,15 +150,12 @@ describe("grid functions ::", function() {
       var candidate = g.makeCandidate(cells, cells[testIdx], 8);
       expect(candidate[testIdx].domain).toEqual([8]);
       expect(candidate).not.toBe(cells);
-      R.each.idx(function(cell, idx) {
-        expect(cell).not.toBe(cells[idx]);
-        if (idx === testIdx) {
-          expect(cell).not.toEqual(cells[idx]);
-        } else {
-          expect(cell).toEqual(cells[idx]);
-        }
-      }, candidate);
     });
+
+    it("constrains the domains of neighbors of the newly bound cell", function() {
+      
+    });
+
   });
 
   describe("makeNextFn ::", function() {

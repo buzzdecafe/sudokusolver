@@ -14,7 +14,7 @@ var print = function(cells) {
   }, R.range(0,9));
 };
 
-var cells = g.matrixToCells(matrix.Easy[0]);
+var cells = g.constrainAll(g.matrixToCells(matrix.Easy[0]));
 print(cells);
 solver(cells, print);
 

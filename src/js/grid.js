@@ -1,11 +1,13 @@
 var R = require('ramda');
 var Cell = require('./Cell');
+var where = R.where;
+var DOMAIN = R.range(1,10);
 
 // a collection of functions for dealing with an array of variables (cells)
 // as though they were a 9x9 grid
 
 function matrixToCells(matrix) {
-  var dom = R.range(1, 10);
+  var dom = R.clone(DOMAIN);
   return R.foldl.idx(function(acc, row, yIndex) {
     return acc.concat(R.map.idx(function(cell, xIndex) {
       return new Cell(xIndex, yIndex, (cell ? [cell] : dom));
@@ -14,11 +16,11 @@ function matrixToCells(matrix) {
 }
 
 function getRow(cell, cells) {
-  return R.filter(function(c) { return c.y === cell.y; }, cells);
+  return R.filter(where({y: cell.y}), cells);
 }
 
 function getColumn(cell, cells) {
-  return R.filter(function(c) { return c.x === cell.x; }, cells);
+  return R.filter(where({x: cell.x}), cells);
 }
 
 function getBox(cell, cells) {
@@ -36,8 +38,17 @@ var cloneCells = R.map(function(c) { return Cell.clone(c); });
 
 function makeCandidate(candidate, cell, value) {
   var nextCandidate = cloneCells(candidate);
-  var cellIndex = R.findIndex(R.where({x: cell.x, y: cell.y}), nextCandidate);
+  var cellIndex = R.findIndex(where({x: cell.x, y: cell.y}), nextCandidate);
+  var affected = getRow(cell, nextCandidate).concat(getColumn(cell, nextCandidate)).concat(getBox(cell, nextCandidate));
+  
+  // icky side-effects! should be ok, since we have cloned the cells.
   nextCandidate[cellIndex].domain = [value];
+  R.each(function(c) {
+    var constrainedCell = constrain(c, nextCandidate);
+    var idx = R.findIndex(where({x: c.x, y: c.y}), nextCandidate);
+    nextCandidate[idx] = constrainedCell;
+  }, affected);
+
   return nextCandidate;
 }
 
@@ -45,7 +56,7 @@ function makeCandidate(candidate, cell, value) {
 // and may or may not be a satisfying assignment.
 function makeNextFn(candidate) {
   var index = 0;
-  var cell = getUnboundCell(candidate);
+  var cell = getMostConstrainedCell(candidate);
 
   return function next() {
     var nextCandidate; 
@@ -80,13 +91,15 @@ var getMostConstrainedCell = function(cells) {
   }, R.filter(isUnbound, cells)));
 }
 
-function satisfies(arr) {
-  if (!isFullyBound(arr)) {
+function mergeDomains(acc, cell) {
+  return acc.concat(cell.domain);
+}
+
+function satisfies(cells) {
+  if (!isFullyBound(cells)) {
     return false;
   }
-  var bindings = R.foldl(function(acc, c) { return acc.concat(c.domain); }, [], arr);
-  return (bindings.length === arr.length) && 
-    R.difference(bindings, R.range(1, 10)).length === 0; 
+  return R.difference(DOMAIN, R.foldl(mergeDomains, [], cells)).length === 0; 
 }
 
 function isSolved(cells) {
@@ -105,24 +118,27 @@ function isSolved(cells) {
   return R.all(satisfies, rows) && R.all(satisfies, cols) && R.all(satisfies, boxes);
 }
 
+
+function boundValues(fn, cell, cells) {
+  return R.foldl(mergeDomains, [], R.filter(isBound, fn(cell, cells)));
+}
+
 // remove any bound values from neighbor cells' domains
 function constrain(cell, cells) {
   var cell2 = Cell.clone(cell);
-  function mergeDomain(acc, cell) {
-    return acc.concat(cell.domain);
-  }
   if (isBound(cell)) {
     return cell2;
   }
-  var rowBound = R.foldl(mergeDomain, [], R.filter(isBound, getRow(cell, cells))); 
-  var colBound = R.foldl(mergeDomain, [], R.filter(isBound, getColumn(cell, cells))); 
-  var boxBound = R.foldl(mergeDomain, [], R.filter(isBound, getBox(cell, cells))); 
+  var rowBound = boundValues(getRow, cell, cells);
+  var colBound = boundValues(getColumn, cell, cells);
+  var boxBound = boundValues(getBox, cell, cells);
 
   cell2.domain = R.difference(cell.domain, rowBound.concat(colBound).concat(boxBound));
   return (cell2.domain.length > 0) ? cell2 : null;
 }
 
-var constrainAll = R.map.idx(function(c, i, ls) { return constrain(c, ls); });
+// called before descending into the solver...
+var constrainAll = R.map.idx(function(c, _, ls) { return constrain(c, ls); });
 
 
 function forwardCheck(cell, cells) {
