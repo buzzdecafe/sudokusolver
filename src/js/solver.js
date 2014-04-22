@@ -14,13 +14,14 @@ function makeSolver(isLeaf, isGoal, makeNextFn) {
     // the iterator returns a new candidate solution for each value in the 
     // domain of the selected cell.
     iter = makeIterator(makeNextFn(candidate));
-    do {
-      nextCandidate = iter.next().value;
+    nextCandidate = iter.next().value;
+    while (nextCandidate) {
       sideEffects(nextCandidate);
       if (solve(nextCandidate, sideEffects)) {
         return true;
       }
-    } while(!nextCandidate.done);
+      nextCandidate = iter.next().value;
+    }
     
     return false; 
   };

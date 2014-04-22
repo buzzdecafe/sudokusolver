@@ -25,7 +25,7 @@ gulp.task('test', function() {
 });
 
 gulp.task('scripts', function() {
-  gulp.src('src/js/run.node.js')
+  gulp.src('src/js/run.js')
     .pipe(browserify())
     .pipe(concat('app.js'))
     .pipe(gulp.dest('build/js'))
@@ -34,7 +34,7 @@ gulp.task('scripts', function() {
 
 gulp.task('debug', function() {
   gulp.src('src/js/run.js')
-    .pipe(browserify({debug: true, standalone: 'solver'}))
+    .pipe(browserify({debug: true}))
     .pipe(gulp.dest('build/js'))
 });
 
