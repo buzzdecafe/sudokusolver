@@ -73,7 +73,7 @@ function makeNextFn(candidate) {
 
   return function next() {
     var nextCandidate; 
-    if (index < cell.domain.length) {
+    if (cell && index < cell.domain.length) {
       console.log('binding (' + cell.x + ', ' + cell.y + ') to ' + cell.domain[index]);
       nextCandidate = makeCandidate(candidate, cell, cell.domain[index]);
       if (isValid(nextCandidate)) {
@@ -86,7 +86,6 @@ function makeNextFn(candidate) {
     }
     return { done: true };
   };
-
 }
 
 function isBound(cell) {
@@ -115,20 +114,20 @@ function mergeDomains(acc, cell) {
   return acc.concat(cell.domain);
 }
 
-function noDupes(cells) {
-  return isSet(cells): 
+function validate(cellArr) {
+  return R.isSet(R.foldl(mergeDomains, [], R.filter(isBound, cellArr)));
 }
 
 function isValid(cells) {
-  return R.all(where({domain: isNotEmpty})) &&
-    R.all(noDupes, R.filter(isBound, getRows(cells))) && 
-    R.all(noDupes, R.filter(isBound, getColumns(cells))) && 
-    R.all(noDupes, R.filter(isBound, getBoxes(cells)))); 
+
+  return R.all(where({domain: isNotEmpty}), cells) && 
+    R.all(validate, getRows(cells)) &&
+    R.all(validate, getColumns(cells)) &&
+    R.all(validate, getBoxes(cells));
 }
 
 function satisfies(cells) {
-  return isFullyBound(cells) && 
-    R.difference(DOMAIN, R.foldl(mergeDomains, [], cells)).length === 0; 
+  return isFullyBound(cells) && R.difference(DOMAIN, R.foldl(mergeDomains, [], cells)).length === 0; 
 }
 
 function toCoords(n) {
@@ -139,11 +138,10 @@ function toCoords(n) {
 }
 
 function isSolved(cells) {
-  return R.all(satisfies, R.map(function(n) { return getRow({y: n}, cells); }, SIZE)) &&
-    R.all(satisfies, R.map(function(n) { return getColumn({x: n}, cells); }, SIZE)) &&
-    R.all(satisfies, R.map(function(n) { return getBox(toCoords(n), cells); }, SIZE));
+  return R.all(satisfies, getRows(cells)) &&
+    R.all(satisfies, getColumns(cells)) &&
+    R.all(satisfies, getBoxes(cells));
 }
-
 
 function boundValues(fn, cell, cells) {
   return R.foldl(mergeDomains, [], R.filter(isBound, fn(cell, cells)));
@@ -194,6 +192,7 @@ module.exports = {
   isFullyBound: isFullyBound,
   isUnbound: isUnbound,
   isSolved: isSolved,
+  isValid: isValid,
   makeCandidate: makeCandidate,
   makeNextFn: makeNextFn,
   matrixToCells: matrixToCells

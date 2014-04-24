@@ -1635,8 +1635,16 @@ function getRow(cell, cells) {
   return R.filter(where({y: cell.y}), cells);
 }
 
+function getRows(cells) {
+  return R.map(function(n) { return getRow({y: n}, cells); }, SIZE);
+}
+
 function getColumn(cell, cells) {
   return R.filter(where({x: cell.x}), cells);
+}
+
+function getColumns(cells) {
+  return R.map(function(n) { return getColumn({x: n}, cells); }, SIZE);
 }
 
 function getBox(cell, cells) {
@@ -1648,6 +1656,10 @@ function getBox(cell, cells) {
   return R.filter(function(c) {
     return Math.floor(c.x/3) * 3 === boxXY.x && Math.floor(c.y/3) * 3 === boxXY.y; 
   }, cells);
+}
+
+function getBoxes(cells) {
+  return R.map(function(n) { return getBox(toCoords(n), cells); }, SIZE);
 }
 
 var cloneCells = R.map(function(c) { return Cell.clone(c); });
@@ -1676,7 +1688,7 @@ function makeNextFn(candidate) {
 
   return function next() {
     var nextCandidate; 
-    if (index < cell.domain.length) {
+    if (cell && index < cell.domain.length) {
       console.log('binding (' + cell.x + ', ' + cell.y + ') to ' + cell.domain[index]);
       nextCandidate = makeCandidate(candidate, cell, cell.domain[index]);
       if (isValid(nextCandidate)) {
@@ -1689,7 +1701,6 @@ function makeNextFn(candidate) {
     }
     return { done: true };
   };
-
 }
 
 function isBound(cell) {
@@ -1718,7 +1729,17 @@ function mergeDomains(acc, cell) {
   return acc.concat(cell.domain);
 }
 
-var isValid = R.all(where({domain: isNotEmpty}));
+function noDupes(cells) {
+  return R.isSet(R.pluck('domain', cells)); 
+}
+
+function isValid(cells) {
+  return true;
+  return R.all(where({domain: isNotEmpty}), cells) &&
+    R.all(noDupes, R.filter(isBound, getRows(cells))) && 
+    R.all(noDupes, R.filter(isBound, getColumns(cells))) && 
+    R.all(noDupes, R.filter(isBound, getBoxes(cells))); 
+}
 
 function satisfies(cells) {
   return isFullyBound(cells) && 

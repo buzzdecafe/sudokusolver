@@ -3,6 +3,7 @@ var R = require('ramda');
 var g = require('../src/js/grid.js');
 var Cell = require('../src/js/Cell.js');
 var mx = require('./data/matrices.js');
+var realMx = require('../src/js/data/grids.js');
 var cellData = require('./data/cellData');
 
 var cells = cellData.cells;
@@ -137,10 +138,28 @@ describe("grid functions ::", function() {
       var solvedGrid = g.matrixToCells(mx.solved);
       var validUnsolved = g.matrixToCells(mx.valid);
       var invalidUnsolved = g.matrixToCells(mx.badRow);
-      expect(g.isFullyBound(solvedGrid)).toBe(true);
       expect(g.isSolved(solvedGrid)).toBe(true); 
       expect(g.isSolved(validUnsolved)).toBe(false); 
       expect(g.isSolved(invalidUnsolved)).toBe(false); 
+    });
+  });
+
+  describe("isValid ::", function() {
+    var valid = g.matrixToCells(mx.valid);
+    var badRow = g.matrixToCells(mx.badRow);
+    var badCol = g.matrixToCells(mx.badCol);
+    var badBox = g.matrixToCells(mx.badBox);
+
+    it("tests the current assignment for duplicates", function() {
+      expect(g.isValid(valid)).toBe(true);
+      expect(g.isValid(badRow)).toBe(false);
+      expect(g.isValid(badCol)).toBe(false);
+      expect(g.isValid(badBox)).toBe(false);
+    });
+    
+    it("tests the current assignment for empty domains", function() {
+      valid[0].domain = [];
+      expect(g.isValid(valid)).toBe(false);
     });
   });
 
@@ -162,12 +181,11 @@ describe("grid functions ::", function() {
     it("returns the `next` function to use when iterating over a cell's domain generating candidates", function() {
       var nextFn = g.makeNextFn(cells);
       expect(typeof nextFn).toBe('function');
-      expect(typeof nextFn()).toBe('object');
-
+      expect(typeof nextFn(cells)).toBe('object');
     });
   });
 
-  describe("matrxiToCells ::", function() {
+  describe("matrixToCells ::", function() {
     var matrix = mx.valid;
     var cs = g.matrixToCells(matrix);
 
@@ -192,6 +210,16 @@ describe("grid functions ::", function() {
       expect(cell).not.toBe(cells[30]);
       expect(cells[30].domain).toEqual([1,2,3,4,5,6,7,8,9]);
       expect(cell.domain).toEqual([1,2,4,5,7,8,9]);
+
+      var cells2 = g.matrixToCells(realMx.Easy[0]);
+      expect(g.constrain(cells2[0], cells2).domain).toEqual([3,4,5]);
+      expect(g.constrain(cells2[1], cells2).domain).toEqual([3]);
+      expect(g.constrain(cells2[2], cells2).domain).toEqual([5]);
+      expect(g.constrain(cells2[5], cells2).domain).toEqual([5,9]);
+      expect(g.constrain(cells2[7], cells2).domain).toEqual([8]);
+      expect(g.constrain(cells2[17], cells2).domain).toEqual([2,3]);
+      expect(g.constrain(cells2[22], cells2).domain).toEqual([3,8]);
+      expect(g.constrain(cells2[29], cells2).domain).toEqual([6,7]);
     });
   });
 
