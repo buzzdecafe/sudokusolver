@@ -52,12 +52,14 @@ var cloneCells = R.map(function(c) { return Cell.clone(c); });
 function makeCandidate(candidate, cell, value) {
   var nextCandidate = cloneCells(candidate);
   var cellIndex = R.findIndex(where({x: cell.x, y: cell.y}), nextCandidate);
-  var affected = R.filter(isUnbound, getRow(cell, nextCandidate).concat(getColumn(cell, nextCandidate)).concat(getBox(cell, nextCandidate)));
+  var affected;
+  
+  nextCandidate[cellIndex].domain = [value];
+  affected = R.filter(isUnbound, getRow(cell, nextCandidate).concat(getColumn(cell, nextCandidate)).concat(getBox(cell, nextCandidate)));
   
   // icky side-effects! should be ok, since we have cloned the cells.
-  nextCandidate[cellIndex].domain = [value];
   R.each(function(c) {
-    var constrainedCell = constrain(c, nextCandidate);
+    var constrainedCell = constrain(c, candidate);
     var idx = R.findIndex(where({x: c.x, y: c.y}), nextCandidate);
     nextCandidate[idx] = constrainedCell;
   }, affected);
@@ -115,13 +117,12 @@ function mergeDomains(acc, cell) {
 }
 
 function validate(cellArr) {
-  return R.isSet(R.foldl(mergeDomains, [], R.filter(isBound, cellArr)));
+  return R.all(where({domain: isNotEmpty}), cellArr) && R.isSet(R.foldl(mergeDomains, [], R.filter(isBound, cellArr)));
 }
 
 function isValid(cells) {
 
-  return R.all(where({domain: isNotEmpty}), cells) && 
-    R.all(validate, getRows(cells)) &&
+  return R.all(validate, getRows(cells)) &&
     R.all(validate, getColumns(cells)) &&
     R.all(validate, getBoxes(cells));
 }

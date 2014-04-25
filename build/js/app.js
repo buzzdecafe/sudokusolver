@@ -1667,12 +1667,14 @@ var cloneCells = R.map(function(c) { return Cell.clone(c); });
 function makeCandidate(candidate, cell, value) {
   var nextCandidate = cloneCells(candidate);
   var cellIndex = R.findIndex(where({x: cell.x, y: cell.y}), nextCandidate);
-  var affected = R.filter(isUnbound, getRow(cell, nextCandidate).concat(getColumn(cell, nextCandidate)).concat(getBox(cell, nextCandidate)));
+  var affected;
+  
+  nextCandidate[cellIndex].domain = [value];
+  affected = R.filter(isUnbound, getRow(cell, nextCandidate).concat(getColumn(cell, nextCandidate)).concat(getBox(cell, nextCandidate)));
   
   // icky side-effects! should be ok, since we have cloned the cells.
-  nextCandidate[cellIndex].domain = [value];
   R.each(function(c) {
-    var constrainedCell = constrain(c, nextCandidate);
+    var constrainedCell = constrain(c, candidate);
     var idx = R.findIndex(where({x: c.x, y: c.y}), nextCandidate);
     nextCandidate[idx] = constrainedCell;
   }, affected);
@@ -1729,21 +1731,19 @@ function mergeDomains(acc, cell) {
   return acc.concat(cell.domain);
 }
 
-function noDupes(cells) {
-  return R.isSet(R.pluck('domain', cells)); 
+function validate(cellArr) {
+  return R.all(where({domain: isNotEmpty}), cellArr) && R.isSet(R.foldl(mergeDomains, [], R.filter(isBound, cellArr)));
 }
 
 function isValid(cells) {
-  return true;
-  return R.all(where({domain: isNotEmpty}), cells) &&
-    R.all(noDupes, R.filter(isBound, getRows(cells))) && 
-    R.all(noDupes, R.filter(isBound, getColumns(cells))) && 
-    R.all(noDupes, R.filter(isBound, getBoxes(cells))); 
+
+  return R.all(validate, getRows(cells)) &&
+    R.all(validate, getColumns(cells)) &&
+    R.all(validate, getBoxes(cells));
 }
 
 function satisfies(cells) {
-  return isFullyBound(cells) && 
-    R.difference(DOMAIN, R.foldl(mergeDomains, [], cells)).length === 0; 
+  return isFullyBound(cells) && R.difference(DOMAIN, R.foldl(mergeDomains, [], cells)).length === 0; 
 }
 
 function toCoords(n) {
@@ -1754,11 +1754,10 @@ function toCoords(n) {
 }
 
 function isSolved(cells) {
-  return R.all(satisfies, R.map(function(n) { return getRow({y: n}, cells); }, SIZE)) &&
-    R.all(satisfies, R.map(function(n) { return getColumn({x: n}, cells); }, SIZE)) &&
-    R.all(satisfies, R.map(function(n) { return getBox(toCoords(n), cells); }, SIZE));
+  return R.all(satisfies, getRows(cells)) &&
+    R.all(satisfies, getColumns(cells)) &&
+    R.all(satisfies, getBoxes(cells));
 }
-
 
 function boundValues(fn, cell, cells) {
   return R.foldl(mergeDomains, [], R.filter(isBound, fn(cell, cells)));
@@ -1809,6 +1808,7 @@ module.exports = {
   isFullyBound: isFullyBound,
   isUnbound: isUnbound,
   isSolved: isSolved,
+  isValid: isValid,
   makeCandidate: makeCandidate,
   makeNextFn: makeNextFn,
   matrixToCells: matrixToCells
