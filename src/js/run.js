@@ -4,7 +4,7 @@ var getSolver = require('./solver');
 var matrix = require('./data/grids');
 
 
-var solver = getSolver(g.isFullyBound, g.isSolved, g.makeNextFn);
+var solver = getSolver(g.isFullyBound, g.isSolved, g.isValid, g.makeNextFn);
 
 var print = function(cells) {
   console.log('.-----------+-----------+-----------+'); 

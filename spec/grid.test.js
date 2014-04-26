@@ -23,7 +23,6 @@ describe("grid functions ::", function() {
     expect(typeof g.getColumn).toBe('function');
     expect(typeof g.getMostConstrainedCell).toBe('function');
     expect(typeof g.getRow).toBe('function');
-    expect(typeof g.getUnboundCell).toBe('function');
     expect(typeof g.isBound).toBe('function');
     expect(typeof g.isFullyBound).toBe('function');
     expect(typeof g.isUnbound).toBe('function');
@@ -99,12 +98,6 @@ describe("grid functions ::", function() {
   describe("getMostConstrainedCell ::", function() {
     it("returns a cell with the smallest domain > 1", function() {
       expect(g.getMostConstrainedCell(cells)).toEqual({x:4, y:4, domain:[1,2,3]});
-    });
-  });
-
-  describe("getUnboundCell ::", function() {
-    it("returns a cell with domain > 1", function() {
-      expect(g.getUnboundCell(cells)).toEqual({x:0, y:0, domain:[1,2,3,4,5,6,7,8,9]});
     });
   });
 

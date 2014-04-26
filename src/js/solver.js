@@ -1,7 +1,8 @@
 var R = require('ramda');
 var makeIterator = require('./iterator');
 
-function makeSolver(isLeaf, isGoal, makeNextFn) {
+function makeSolver(isLeaf, isGoal, isValid, makeNextFn) {
+  isValid = isValid || R.alwaysTrue;
   return function solve(candidate, sideEffects) {
     var iter;
     var nextCandidate;
@@ -17,8 +18,10 @@ function makeSolver(isLeaf, isGoal, makeNextFn) {
     nextCandidate = iter.next().value;
     while (nextCandidate) {
       sideEffects(nextCandidate);
-      if (solve(nextCandidate, sideEffects)) {
-        return true;
+      if (isValid(nextCandidate)) {
+        if (solve(nextCandidate, sideEffects)) {
+          return true;
+        }
       }
       nextCandidate = iter.next().value;
     }

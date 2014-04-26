@@ -1596,7 +1596,7 @@ var getSolver = require('./solver');
 var matrix = require('./data/grids');
 
 
-var solver = getSolver(g.isFullyBound, g.isSolved, g.makeNextFn);
+var solver = getSolver(g.isFullyBound, g.isSolved, g.isValid, g.makeNextFn);
 
 var print = function(cells) {
   console.log('.-----------+-----------+-----------+'); 
@@ -1693,13 +1693,11 @@ function makeNextFn(candidate) {
     if (cell && index < cell.domain.length) {
       console.log('binding (' + cell.x + ', ' + cell.y + ') to ' + cell.domain[index]);
       nextCandidate = makeCandidate(candidate, cell, cell.domain[index]);
-      if (isValid(nextCandidate)) {
-        index++;
-        return {
-          value: nextCandidate,
-          done: false
-        };
-      }
+      index++;
+      return {
+        value: nextCandidate,
+        done: false
+      };
     }
     return { done: true };
   };
@@ -1716,8 +1714,6 @@ function isUnbound(cell) {
 function isNotEmpty(domain) {
   return domain && domain.length > 0;
 }
-
-var getUnboundCell = R.find(isUnbound);
 
 var isFullyBound = R.all(isBound);
 
@@ -1803,7 +1799,6 @@ module.exports = {
   getColumn: getColumn,
   getMostConstrainedCell: getMostConstrainedCell,
   getRow: getRow,
-  getUnboundCell: getUnboundCell,
   isBound: isBound,
   isFullyBound: isFullyBound,
   isUnbound: isUnbound,
@@ -1831,7 +1826,8 @@ module.exports = makeIterator;
 var R = require('ramda');
 var makeIterator = require('./iterator');
 
-function makeSolver(isLeaf, isGoal, makeNextFn) {
+function makeSolver(isLeaf, isGoal, isValid, makeNextFn) {
+  isValid = isValid || R.alwaysTrue;
   return function solve(candidate, sideEffects) {
     var iter;
     var nextCandidate;
@@ -1847,8 +1843,10 @@ function makeSolver(isLeaf, isGoal, makeNextFn) {
     nextCandidate = iter.next().value;
     while (nextCandidate) {
       sideEffects(nextCandidate);
-      if (solve(nextCandidate, sideEffects)) {
-        return true;
+      if (isValid(nextCandidate)) {
+        if (solve(nextCandidate, sideEffects)) {
+          return true;
+        }
       }
       nextCandidate = iter.next().value;
     }

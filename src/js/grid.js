@@ -78,13 +78,11 @@ function makeNextFn(candidate) {
     if (cell && index < cell.domain.length) {
       console.log('binding (' + cell.x + ', ' + cell.y + ') to ' + cell.domain[index]);
       nextCandidate = makeCandidate(candidate, cell, cell.domain[index]);
-      if (isValid(nextCandidate)) {
-        index++;
-        return {
-          value: nextCandidate,
-          done: false
-        };
-      }
+      index++;
+      return {
+        value: nextCandidate,
+        done: false
+      };
     }
     return { done: true };
   };
@@ -101,8 +99,6 @@ function isUnbound(cell) {
 function isNotEmpty(domain) {
   return domain && domain.length > 0;
 }
-
-var getUnboundCell = R.find(isUnbound);
 
 var isFullyBound = R.all(isBound);
 
@@ -188,7 +184,6 @@ module.exports = {
   getColumn: getColumn,
   getMostConstrainedCell: getMostConstrainedCell,
   getRow: getRow,
-  getUnboundCell: getUnboundCell,
   isBound: isBound,
   isFullyBound: isFullyBound,
   isUnbound: isUnbound,
