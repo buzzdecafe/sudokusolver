@@ -1498,6 +1498,10 @@
 },{}],2:[function(require,module,exports){
 var clone = require('ramda').clone;
 
+function notEmpty(d) {
+  return d && d.length > 0;
+}
+
 function Cell(x, y, domain) {
   this.x = x;
   this.y = y;
@@ -1508,7 +1512,18 @@ Cell.clone = function(cell) {
   return new Cell(cell.x, cell.y, clone(cell.domain));
 };
 
+Cell.isBound = function(cell) {
+  return cell.domain.length === 1;
+}
+
+Cell.isUnbound = function(cell) {
+  return cell.domain.length > 1;
+}
+
+Cell.isNotEmpty = { domain: function(d) { return d && d.length > 0; } };
+
 module.exports = Cell;
+
 
 },{"ramda":1}],3:[function(require,module,exports){
 
@@ -1592,6 +1607,7 @@ module.exports = {
 },{}],4:[function(require,module,exports){
 var R = require('ramda');
 var g = require('./grid');
+var Cell = require('./Cell');
 var getSolver = require('./solver');
 var matrix = require('./data/grids');
 
@@ -1601,18 +1617,24 @@ var solver = getSolver(g.isFullyBound, g.isSolved, g.isValid, g.makeNextFn);
 var print = function(cells) {
   console.log('.-----------+-----------+-----------+'); 
   R.each(function(n) {
-    console.log('[ ' + R.map(function(c) { return g.isBound(c) ? c.domain[0] : ' '; }, g.getRow({y: n}, cells)).join(' | ') + ' ]');
+    console.log('[ ' + R.map(function(c) { return Cell.isBound(c) ? c.domain[0] : ' '; }, g.getRow({y: n}, cells)).join(' | ') + ' ]');
     console.log('[-----------+-----------+-----------]');
   }, R.range(0,9));
 };
 
 var cells = g.constrainAll(g.matrixToCells(matrix.Easy[0]));
 print(cells);
-solver(cells, print);
+var start = new Date();
+var result = solver(cells, print);
+var duration = (new Date()) - start;
+if (result) {
+  console.log("solution found in", duration, "milliseconds");
+} else {
+  console.log("no solution found");
+}
 
 
-
-},{"./data/grids":3,"./grid":5,"./solver":7,"ramda":1}],5:[function(require,module,exports){
+},{"./Cell":2,"./data/grids":3,"./grid":5,"./solver":7,"ramda":1}],5:[function(require,module,exports){
 var R = require('ramda');
 var Cell = require('./Cell');
 var where = R.where;
@@ -1670,7 +1692,7 @@ function makeCandidate(candidate, cell, value) {
   var affected;
   
   nextCandidate[cellIndex].domain = [value];
-  affected = R.filter(isUnbound, getRow(cell, nextCandidate).concat(getColumn(cell, nextCandidate)).concat(getBox(cell, nextCandidate)));
+  affected = R.filter(Cell.isUnbound, getRow(cell, nextCandidate).concat(getColumn(cell, nextCandidate)).concat(getBox(cell, nextCandidate)));
   
   // icky side-effects! should be ok, since we have cloned the cells.
   R.each(function(c) {
@@ -1703,24 +1725,12 @@ function makeNextFn(candidate) {
   };
 }
 
-function isBound(cell) {
-  return cell.domain.length === 1;
-}
-
-function isUnbound(cell) {
-  return cell.domain.length > 1;
-}
-
-function isNotEmpty(domain) {
-  return domain && domain.length > 0;
-}
-
-var isFullyBound = R.all(isBound);
+var isFullyBound = R.all(Cell.isBound);
 
 var getMostConstrainedCell = function(cells) {
   return R.car(R.sort(function(a, b) { 
     return a.domain.length - b.domain.length; 
-  }, R.filter(isUnbound, cells)));
+  }, R.filter(Cell.isUnbound, cells)));
 }
 
 function mergeDomains(acc, cell) {
@@ -1728,7 +1738,7 @@ function mergeDomains(acc, cell) {
 }
 
 function validate(cellArr) {
-  return R.all(where({domain: isNotEmpty}), cellArr) && R.isSet(R.foldl(mergeDomains, [], R.filter(isBound, cellArr)));
+  return R.all(where(Cell.isNotEmpty), cellArr) && R.isSet(R.foldl(mergeDomains, [], R.filter(Cell.isBound, cellArr)));
 }
 
 function isValid(cells) {
@@ -1756,13 +1766,13 @@ function isSolved(cells) {
 }
 
 function boundValues(fn, cell, cells) {
-  return R.foldl(mergeDomains, [], R.filter(isBound, fn(cell, cells)));
+  return R.foldl(mergeDomains, [], R.filter(Cell.isBound, fn(cell, cells)));
 }
 
 // remove any bound values from neighbor cells' domains
 function constrain(cell, cells) {
   var cell2 = Cell.clone(cell);
-  if (isBound(cell)) {
+  if (Cell.isBound(cell)) {
     return cell2;
   }
   var rowBound = boundValues(getRow, cell, cells);
@@ -1778,14 +1788,14 @@ var constrainAll = R.map.idx(function(c, _, ls) { return constrain(c, ls); });
 
 
 function forwardCheck(cell, cells) {
-  if (!isBound(cell)) {
+  if (!Cell.isBound(cell)) {
     return;
   }
 
   var cell2 = Cell.clone(cell);
-  var rowUnbound = R.filter(isUnbound, getRow(cell2, cells)); 
-  var colUnbound = R.filter(isUnbound, getColumn(cell2, cells)); 
-  var boxUnbound = R.filter(isUnbound, getBox(cell2, cells)); 
+  var rowUnbound = R.filter(Cell.isUnbound, getRow(cell2, cells)); 
+  var colUnbound = R.filter(Cell.isUnbound, getColumn(cell2, cells)); 
+  var boxUnbound = R.filter(Cell.isUnbound, getBox(cell2, cells)); 
 
   // constrain the unbound neighbors of the newly-bound cell. If any cell
   // becomes bound as a result, recurse on that cell.
@@ -1799,9 +1809,7 @@ module.exports = {
   getColumn: getColumn,
   getMostConstrainedCell: getMostConstrainedCell,
   getRow: getRow,
-  isBound: isBound,
   isFullyBound: isFullyBound,
-  isUnbound: isUnbound,
   isSolved: isSolved,
   isValid: isValid,
   makeCandidate: makeCandidate,

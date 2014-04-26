@@ -19,14 +19,15 @@ function cellAt(x, y) {
 describe("grid functions ::", function() {
 
   it("hasCorrectInterface", function() {
+    expect(typeof g.constrain).toBe('function');
+    expect(typeof g.constrainAll).toBe('function');
     expect(typeof g.getBox).toBe('function');
     expect(typeof g.getColumn).toBe('function');
     expect(typeof g.getMostConstrainedCell).toBe('function');
     expect(typeof g.getRow).toBe('function');
-    expect(typeof g.isBound).toBe('function');
     expect(typeof g.isFullyBound).toBe('function');
-    expect(typeof g.isUnbound).toBe('function');
     expect(typeof g.isSolved).toBe('function');
+    expect(typeof g.isValid).toBe('function');
     expect(typeof g.makeCandidate).toBe('function');
     expect(typeof g.makeNextFn).toBe('function');
     expect(typeof g.matrixToCells).toBe('function');
@@ -98,22 +99,6 @@ describe("grid functions ::", function() {
   describe("getMostConstrainedCell ::", function() {
     it("returns a cell with the smallest domain > 1", function() {
       expect(g.getMostConstrainedCell(cells)).toEqual({x:4, y:4, domain:[1,2,3]});
-    });
-  });
-
-  describe("isBound ::", function() {
-    it("returns true if a cell has one value in its domain", function() {
-      expect(g.isBound({domain: [4]})).toBe(true);
-      expect(g.isBound({domain: [1,2,3,4]})).toBe(false);
-      expect(g.isBound({domain: []})).toBe(false);
-    });
-  });
-
-  describe("isUnbound ::", function() {
-    it("returns true if a cell has more than one value in its domain", function() {
-      expect(g.isUnbound({domain: [4]})).toBe(false);
-      expect(g.isUnbound({domain: [1,2,3,4]})).toBe(true);
-      expect(g.isUnbound({domain: []})).toBe(false);
     });
   });
 
@@ -190,10 +175,10 @@ describe("grid functions ::", function() {
     });
 
     it("binds any cells that have non-zero values in the matrix", function() {
-      var boundIndices = R.foldl.idx(function(acc, c, idx) { return g.isBound(c) ? acc.concat(idx) : acc; }, [], cs);
+      var boundIndices = R.foldl.idx(function(acc, c, idx) { return Cell.isBound(c) ? acc.concat(idx) : acc; }, [], cs);
       var unboundIndices = R.difference(R.range(0,81), boundIndices); 
-      expect(R.all(function(i) { return g.isBound(cs[i]); }, boundIndices));
-      expect(R.all(function(i) { return !g.isBound(cs[i]); }, unboundIndices));
+      expect(R.all(function(i) { return Cell.isBound(cs[i]); }, boundIndices));
+      expect(R.all(function(i) { return !Cell.isBound(cs[i]); }, unboundIndices));
     });
   });
 

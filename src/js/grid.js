@@ -55,7 +55,7 @@ function makeCandidate(candidate, cell, value) {
   var affected;
   
   nextCandidate[cellIndex].domain = [value];
-  affected = R.filter(isUnbound, getRow(cell, nextCandidate).concat(getColumn(cell, nextCandidate)).concat(getBox(cell, nextCandidate)));
+  affected = R.filter(Cell.isUnbound, getRow(cell, nextCandidate).concat(getColumn(cell, nextCandidate)).concat(getBox(cell, nextCandidate)));
   
   // icky side-effects! should be ok, since we have cloned the cells.
   R.each(function(c) {
@@ -88,24 +88,12 @@ function makeNextFn(candidate) {
   };
 }
 
-function isBound(cell) {
-  return cell.domain.length === 1;
-}
-
-function isUnbound(cell) {
-  return cell.domain.length > 1;
-}
-
-function isNotEmpty(domain) {
-  return domain && domain.length > 0;
-}
-
-var isFullyBound = R.all(isBound);
+var isFullyBound = R.all(Cell.isBound);
 
 var getMostConstrainedCell = function(cells) {
   return R.car(R.sort(function(a, b) { 
     return a.domain.length - b.domain.length; 
-  }, R.filter(isUnbound, cells)));
+  }, R.filter(Cell.isUnbound, cells)));
 }
 
 function mergeDomains(acc, cell) {
@@ -113,7 +101,7 @@ function mergeDomains(acc, cell) {
 }
 
 function validate(cellArr) {
-  return R.all(where({domain: isNotEmpty}), cellArr) && R.isSet(R.foldl(mergeDomains, [], R.filter(isBound, cellArr)));
+  return R.all(where(Cell.isNotEmpty), cellArr) && R.isSet(R.foldl(mergeDomains, [], R.filter(Cell.isBound, cellArr)));
 }
 
 function isValid(cells) {
@@ -141,13 +129,13 @@ function isSolved(cells) {
 }
 
 function boundValues(fn, cell, cells) {
-  return R.foldl(mergeDomains, [], R.filter(isBound, fn(cell, cells)));
+  return R.foldl(mergeDomains, [], R.filter(Cell.isBound, fn(cell, cells)));
 }
 
 // remove any bound values from neighbor cells' domains
 function constrain(cell, cells) {
   var cell2 = Cell.clone(cell);
-  if (isBound(cell)) {
+  if (Cell.isBound(cell)) {
     return cell2;
   }
   var rowBound = boundValues(getRow, cell, cells);
@@ -163,14 +151,14 @@ var constrainAll = R.map.idx(function(c, _, ls) { return constrain(c, ls); });
 
 
 function forwardCheck(cell, cells) {
-  if (!isBound(cell)) {
+  if (!Cell.isBound(cell)) {
     return;
   }
 
   var cell2 = Cell.clone(cell);
-  var rowUnbound = R.filter(isUnbound, getRow(cell2, cells)); 
-  var colUnbound = R.filter(isUnbound, getColumn(cell2, cells)); 
-  var boxUnbound = R.filter(isUnbound, getBox(cell2, cells)); 
+  var rowUnbound = R.filter(Cell.isUnbound, getRow(cell2, cells)); 
+  var colUnbound = R.filter(Cell.isUnbound, getColumn(cell2, cells)); 
+  var boxUnbound = R.filter(Cell.isUnbound, getBox(cell2, cells)); 
 
   // constrain the unbound neighbors of the newly-bound cell. If any cell
   // becomes bound as a result, recurse on that cell.
@@ -184,9 +172,7 @@ module.exports = {
   getColumn: getColumn,
   getMostConstrainedCell: getMostConstrainedCell,
   getRow: getRow,
-  isBound: isBound,
   isFullyBound: isFullyBound,
-  isUnbound: isUnbound,
   isSolved: isSolved,
   isValid: isValid,
   makeCandidate: makeCandidate,
