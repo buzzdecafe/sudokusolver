@@ -1,9 +1,5 @@
 var clone = require('ramda').clone;
 
-function notEmpty(d) {
-  return d && d.length > 0;
-}
-
 function Cell(x, y, domain) {
   this.x = x;
   this.y = y;
